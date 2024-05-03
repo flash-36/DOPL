@@ -33,6 +33,8 @@ class ELP:
         self.n_arms = n_arms
 
     def compute_ELP(self):
+
+        
         index_policy = np.zeros(
             (self.n_arms, self.n_state, self.n_state, self.n_action)
         )
@@ -46,12 +48,7 @@ class ELP:
         ]
         w = p.LpVariable.dicts("w", idx_p_keys, lowBound=0, upBound=1, cat="continous")
 
-        r = {}
-        for n in range(self.n_arms):
-            r[n] = {}
-
-            for state in range(self.n_state):
-                r[n][state] = self.R[n][state]
+        r = self.R.copy()
 
         # objective equation
         opt_prob += p.lpSum(
@@ -66,6 +63,7 @@ class ELP:
         # list1 = [r[n][s] for n in range(self.n_arms) for s in range(self.n_state)]*self.
 
         # Budget Constraint
+        
 
         opt_prob += (
             p.lpSum(
@@ -80,6 +78,8 @@ class ELP:
             - self.budget
             <= 0
         )
+
+
 
         for n in range(self.n_arms):
             for s in range(self.n_state):
@@ -103,7 +103,8 @@ class ELP:
                 for a in range(self.n_action)
                 for s_dash in range(self.n_state)
             ]
-            opt_prob += p.lpSum(a_list) == 1
+            opt_prob += p.lpSum(a_list) -1 == 0
+
 
         # Extended part of the Linear Programming
         for n in range(self.n_arms):
@@ -127,24 +128,34 @@ class ELP:
                             * (self.P_hat[n][s_dash][s][a] - self.delta[n][s][a])
                             <= 0
                         )
-        p.LpSolverDefault.msg = 1
-        status = opt_prob.solve(p.PULP_CBC_CMD(gapRel=0.01, msg=0))
+        
+        
+        status = opt_prob.solve(p.PULP_CBC_CMD(msg=0))
 
-        if p.LpStatus[status] != "optimal":
+        
+        
+        if p.LpStatus[status] != "Optimal":
+            print("The policy is not optimal")
             return index_policy
+        
+        
 
         for n in range(self.n_arms):
             for s in range(self.n_state):
                 for a in range(self.n_action):
                     for s_dash in range(self.n_state):
-                        index_policy[n, s, a, s_dash] = w[(n, s, a, s_dash)].varValue
-                        if (index_policy[n, s, a, s_dash]) < 0 and index_policy[
-                            n, s, a, s_dash
+                        index_policy[n, s, s_dash, a] = w[(n, s, a, s_dash)].varValue
+                        
+
+                        if (index_policy[n, s, s_dash, a]) < 0 and index_policy[
+                            n, s, s_dash, a
                         ] > -0.001:
-                            index_policy[n, s, a, s_dash] = 0
-                        elif index_policy[n, s, a, s_dash] < -0.001:
+                            index_policy[n, s, s_dash, a] = 0
+                        elif index_policy[n, s, s_dash, a] < -0.001:
                             print("Invalid Value")
                             sys.exit()
+
+        
 
         return index_policy
 
