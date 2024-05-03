@@ -37,6 +37,8 @@ def eval(env, policy):
 
 
 def train(env):
+
+    # Initialze placeholders
     num_arms = len(env.P_list)
     num_states = env.P_list[0].shape[0]
     num_actions = env.R_list[0].shape[1]
@@ -46,11 +48,23 @@ def train(env):
     Z_sa = np.zeros((num_arms, num_states, num_actions))
     Z_sas = np.zeros((num_arms, num_states, num_actions, num_states))
     train_curve = []
+    F_tilde = np.zeros((num_arms, num_states, num_arms, num_states)) * 0.5
+    delta = np.zeros((num_arms, num_states, num_actions)) * delta_coeff
+
+    # Start traing
     for k in range(K):
-        # Compute the policy
-        # policy = ELP(P_hat, ....)
+        # Compute the corresponding index policy
+        ## Compte Q_n_s
+        ref_arm, ref_state = 0, 0
+        Q_n_s = np.log((1 - F_tilde[ref_arm][ref_state]) / F_tilde[ref_arm][ref_state])
+        ##compute the policy
+        e = ELP(
+            delta, P_hat, env.arm_constraint, num_states, num_actions, Q_n_s, num_arms
+        )
+        policy = e.compute_ELP()
         # Evaluate the policy
-        # train_curve.append(eval(env, policy))
+        train_curve.append(eval(env, policy))
+        # Update F_tilde according to alg 2
         for h in range(H):
             s_list = env.reset()
             for t in range(T):
@@ -70,6 +84,7 @@ def train(env):
         F_tilde = F_hat + conf_coeff * np.sqrt(
             np.log(k) / C
         )  # Make this closer to the actual formula?
+
         # Construct set of plausible transition kernels (i.e compute its center and radii)
         P_hat = Z_sas / max(Z_sa[:, :, :, None], 1)  # TODO: Verify this functionality
         delta = delta_coeff * np.sqrt(

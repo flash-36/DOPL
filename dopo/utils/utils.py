@@ -77,12 +77,12 @@ class ELP:
                     for s_dash in range(self.n_state)
                 ]
             )
-            - self.budge
+            - self.budget
             <= 0
         )
 
         for n in range(self.n_arms):
-            for s in self.range(self.n_state):
+            for s in range(self.n_state):
                 w_list = [
                     w[(n, s, a, s_dash)]
                     for a in range(self.n_action)
