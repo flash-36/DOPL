@@ -33,7 +33,7 @@ class ELP:
         self.n_arms = n_arms
 
     def compute_ELP(self):
-
+        breakpoint()
         index_policy = np.zeros(
             (self.n_arms, self.n_state, self.n_state, self.n_action)
         )
@@ -64,6 +64,7 @@ class ELP:
                 for s_dash in range(self.n_state)
             ]
         )
+        # list1 = [r[n][s] for n in range(self.n_arms) for s in range(self.n_state)]*self.
 
         # Budget Constraint
 
@@ -115,20 +116,13 @@ class ELP:
                             w[(n, s, a, s_dash)] for s_dash in range(self.n_state)
                         ]
                         opt_prob += (
-                            w[(n, s, a, s_dash)] / p.lpSum(b_list)
-                            - self.P_hat[n][s_dash][a][s]
-                            - self.delta[n][s][a]
-                            <= 0
-                        )
+                            w[(n, s, a, s_dash)] - (self.P_hat[n][s_dash][s][a]+self.delta[n][s][a])*p.lpSum(b_list) <= 0)
 
                         opt_prob += (
-                            -1 * w[(n, s, a, s_dash)] / p.lpSum(b_list)
-                            + self.P_hat[n][s_dash][a][s]
-                            - self.delta[n][s][a]
-                            <= 0
+                            -1 * w[(n, s, a, s_dash)] + p.lpSum(b_list)*(self.P_hat[n][s_dash][s][a]- self.delta[n][s][a])<= 0
                         )
-
-        status = opt_prob.solve(p.PULP_CBC_CMD(fracGap=0.01, msg=0))
+        p.LpSolverDefault.msg = 1
+        status = opt_prob.solve(p.PULP_CBC_CMD(gapRel =0.01, msg=0))
 
         if p.LpStatus[status] != "optimal":
             return index_policy
@@ -200,7 +194,7 @@ class Optimal:
                     for a in range(self.n_action)
                 ]
             )
-            - self.budge
+            - self.budget
             <= 0
         )
 
@@ -225,7 +219,7 @@ class Optimal:
                 ]
                 opt_prob += p.lpSum(a_list) - p.lpSum(b_list) == 0
 
-        status = opt_prob.solve(p.PULP_CBC_CMD(fracGap=0.01, msg=0))
+        status = opt_prob.solve(p.PULP_CBC_CMD(gapRel =0.01, msg=0))
         if p.LpStatus[status] != "optimal":
             print("Optimal policy calculation failed")
             return optimal_policy

@@ -49,7 +49,7 @@ def train(env):
     Z_sas = np.zeros((num_arms, num_states, num_actions, num_states))
     train_curve = []
     F_tilde = np.zeros((num_arms, num_states, num_arms, num_states)) * 0.5
-    delta = np.zeros((num_arms, num_states, num_actions)) * delta_coeff
+    delta = np.ones((num_arms, num_states, num_actions)) * delta_coeff
 
     # Start traing
     for k in range(K):
