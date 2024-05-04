@@ -27,6 +27,7 @@ class MultiArmRestlessEnv(gym.Env):
 
     def step(self, action):
         assert sum(action) <= self.arm_constraint, "Action constraint on arms pulled"
+        assert self.action_space.contains(action)
         rewards = []
         states = []
         for i, arm in enumerate(self.arms):

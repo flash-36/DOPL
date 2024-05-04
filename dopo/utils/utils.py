@@ -34,7 +34,6 @@ class ELP:
 
     def compute_ELP(self):
 
-        
         index_policy = np.zeros(
             (self.n_arms, self.n_state, self.n_state, self.n_action)
         )
@@ -63,7 +62,6 @@ class ELP:
         # list1 = [r[n][s] for n in range(self.n_arms) for s in range(self.n_state)]*self.
 
         # Budget Constraint
-        
 
         opt_prob += (
             p.lpSum(
@@ -78,8 +76,6 @@ class ELP:
             - self.budget
             <= 0
         )
-
-
 
         for n in range(self.n_arms):
             for s in range(self.n_state):
@@ -103,8 +99,7 @@ class ELP:
                 for a in range(self.n_action)
                 for s_dash in range(self.n_state)
             ]
-            opt_prob += p.lpSum(a_list) -1 == 0
-
+            opt_prob += p.lpSum(a_list) - 1 == 0
 
         # Extended part of the Linear Programming
         for n in range(self.n_arms):
@@ -128,24 +123,19 @@ class ELP:
                             * (self.P_hat[n][s_dash][s][a] - self.delta[n][s][a])
                             <= 0
                         )
-        
-        
+
         status = opt_prob.solve(p.PULP_CBC_CMD(msg=0))
 
-        
-        
+        print(f"Status: {p.LpStatus[status]}")
         if p.LpStatus[status] != "Optimal":
             print("The policy is not optimal")
             return index_policy
-        
-        
 
         for n in range(self.n_arms):
             for s in range(self.n_state):
                 for a in range(self.n_action):
                     for s_dash in range(self.n_state):
                         index_policy[n, s, s_dash, a] = w[(n, s, a, s_dash)].varValue
-                        
 
                         if (index_policy[n, s, s_dash, a]) < 0 and index_policy[
                             n, s, s_dash, a
@@ -154,8 +144,6 @@ class ELP:
                         elif index_policy[n, s, s_dash, a] < -0.001:
                             print("Invalid Value")
                             sys.exit()
-
-        
 
         return index_policy
 
@@ -169,7 +157,7 @@ class Optimal:
         """
         self.R = reward
         self.P = P
-        self.B = budget
+        self.budget = budget
         self.n_arms = n_arms
         self.n_state = n_state
         self.n_action = n_action
@@ -177,7 +165,7 @@ class Optimal:
     def compute_optimal(self):
 
         optimal_policy = np.zeros((self.n_arms, self.n_state, self.n_action))
-        prob = p.LpProblem("OptimalLP", p.LpMaximize)
+        opt_prob = p.LpProblem("OptimalLP", p.LpMaximize)
         p_keys = [
             (n, s, a)
             for n in range(self.n_arms)
@@ -215,29 +203,30 @@ class Optimal:
             <= 0
         )
 
-        for n in range(self.arms):
+        for n in range(self.n_arms):
             w_list = [
-                w[(n, s, a)] for s in range(self.state) for a in range(self.n_action)
+                w[(n, s, a)] for s in range(self.n_state) for a in range(self.n_action)
             ]
             opt_prob += p.lpSum(w_list) - 1 == 0
 
-        for n in range(self.arms):
+        for n in range(self.n_arms):
             for s in range(self.n_state):
-                for a in range(self.actions):
+                for a in range(self.n_action):
                     opt_prob += w[(n, s, a)] >= 0
 
-        for n in range(self.arms):
+        for n in range(self.n_arms):
             for s in range(self.n_state):
                 a_list = [w[(n, s, a)] for a in range(self.n_action)]
                 b_list = [
-                    w[(n, s_dash, a_dash)] * self.P[s_dash][a_dash][s]
+                    w[(n, s_dash, a_dash)] * self.P[n][s_dash][s][a_dash]
                     for s_dash in range(self.n_state)
                     for a_dash in range(self.n_action)
                 ]
                 opt_prob += p.lpSum(a_list) - p.lpSum(b_list) == 0
 
-        status = opt_prob.solve(p.PULP_CBC_CMD(gapRel=0.01, msg=0))
-        if p.LpStatus[status] != "optimal":
+        status = opt_prob.solve(p.PULP_CBC_CMD(msg=0))
+        print(f"Status: {p.LpStatus[status]}")
+        if p.LpStatus[status] != "Optimal":
             print("Optimal policy calculation failed")
             return optimal_policy
 
@@ -253,4 +242,5 @@ class Optimal:
                         print("Invalid Value")
                         sys.exit()
 
-        return optimal_policy
+        opt_value = p.value(opt_prob.objective)
+        return opt_value

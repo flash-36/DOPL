@@ -16,6 +16,7 @@ class RestlessArmEnv(gym.Env):
         self.initial_dist = initial_dist
 
     def step(self, action):
+        action = int(action)
         assert self.action_space.contains(action)
         reward = self.R[self.current_state][action]
         self.current_state = np.random.choice(
