@@ -51,8 +51,8 @@ def main(cfg: DictConfig):
         losses.append(loss)
 
     # Plot the training performance
-    plot_training_performance(performances, opt_cost)
-    plot_reconstruction_loss(losses)
+    plot_training_performance(performances, opt_cost, cfg["exp"]["name"])
+    plot_reconstruction_loss(losses, cfg["exp"]["name"])
 
 
 if __name__ == "__main__":

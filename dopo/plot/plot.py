@@ -4,7 +4,7 @@ import hydra
 import os
 
 
-def plot_training_performance(performances, opt_cost):
+def plot_training_performance(performances, opt_cost, exp_name):
     train_curves_list = []
     rand_curves_list = []
     for performance in performances:
@@ -34,7 +34,7 @@ def plot_training_performance(performances, opt_cost):
     plt.axhline(opt_cost, color="g", linestyle="--", label="Optimal Cost")
 
     plt.legend()
-    plt.title("Training Performance")
+    plt.title(f"Training Performance - {exp_name}")
     plt.xlabel("Iterations")
     plt.ylabel("Performance")
 
@@ -45,7 +45,7 @@ def plot_training_performance(performances, opt_cost):
     plt.clf()
 
 
-def plot_reconstruction_loss(losses):
+def plot_reconstruction_loss(losses, exp_name):
     index_errors = []
     F_errors = []
     P_errors = []
@@ -86,7 +86,7 @@ def plot_reconstruction_loss(losses):
     )
 
     plt.legend()
-    plt.title("Reconstruction Losses")
+    plt.title(f"Reconstruction Losses -{exp_name}")
     plt.xlabel("Iterations")
     plt.ylabel("Loss")
 

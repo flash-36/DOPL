@@ -49,8 +49,7 @@ def train(env, cfg):
         )
         W_sa = np.sum(W_sas, axis=2)
         index_matrix = W_sa[:, :, 1] / (W_sa[:, :, 0] + W_sa[:, :, 1])
-        # if np.isnan(index_matrix).any():#TODO
-        #     breakpoint()
+        index_matrix = np.nan_to_num(index_matrix, nan=0.0)  # TODO
 
         # Evaluate the policy
         train_curve.append(eval(env, index_matrix))
@@ -66,17 +65,15 @@ def train(env, cfg):
             s_list = env.reset()
             for t in range(env.T):
                 action = apply_index_policy(s_list, index_matrix, env.arm_constraint)
-                # action = np.array([1, 1, 0, 0])
                 s_dash_list, reward, _, _, info = env.step(action)
                 for arm_id, s, a, s_dash in zip(
                     range(num_arms), s_list, action, s_dash_list
                 ):
-                    # breakpoint()
                     Z_sa[arm_id, s, a] += 1
                     Z_sas[arm_id, s, s_dash, a] += 1
-                    delta[arm_id, s, a] = (delta_coeff) * np.sqrt(
-                        1 / (0.0002 * max(1, (Z_sa[arm_id, s, a])))
-                    )  # TODO make closer to formula?
+                    # delta[arm_id, s, a] = (delta_coeff) * np.sqrt(
+                    #     1 / (Z_sa[arm_id, s, a])
+                    # )  # TODO make closer to formula?
                     P_hat[arm_id, s, s_dash, a] = Z_sas[
                         arm_id, s, s_dash, a
                     ] / np.maximum(
@@ -98,13 +95,18 @@ def train(env, cfg):
                         1 / battle_count
                     )  # Make this closer to the actual formula?
                     F_tilde = np.clip(F_tilde, 1e-6, 1 - 1e-6)  # TODO
+                s_list = s_dash_list
 
         # Construct set of plausible transition kernels (i.e compute its center and radii)
         # P_hat = Z_sas / np.maximum(Z_sa[:, :, np.newaxis, :], 1)
-        # print(P_hat.sum(axis=2))
 
     performance = {"train_curve": train_curve, "rand_curve": rand_curve}
     loss = {"index_error": index_error, "F_error": F_error, "P_error": P_error}
+    print(
+        "Training complete\n",
+        f"index_learnt:\n {index_matrix}",
+        f"true_index:\n {env.opt_index}",
+    )
     return performance, loss
 
 
@@ -116,4 +118,5 @@ def eval(env, index_matrix):
         action = apply_index_policy(s_list, index_matrix, env.arm_constraint)
         s_dash_list, reward, _, _, _ = env.step(action)
         total_reward += reward
+        s_list = s_dash_list
     return total_reward
