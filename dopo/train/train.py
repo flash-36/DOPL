@@ -15,7 +15,7 @@ def train(env, cfg):
     num_arms = len(env.P_list)
     num_states = env.P_list[0].shape[0]
     num_actions = env.R_list[0].shape[1]
-    ref_arm, ref_state = 1, 2
+    ref_arm, ref_state = 1, 2  # TODO
     # Initialze placeholders
     W = np.zeros((num_arms, num_states, num_arms, num_states))
     P_hat = np.ones((num_arms, num_states, num_states, num_actions)) / num_states
@@ -29,6 +29,7 @@ def train(env, cfg):
     # Performance trackers
     train_curve = []
     rand_curve = []
+    opt_curve = []
     # Loss trackers
     index_error = []
     F_error = []
@@ -49,11 +50,12 @@ def train(env, cfg):
         )
         W_sa = np.sum(W_sas, axis=2)
         index_matrix = W_sa[:, :, 1] / (W_sa[:, :, 0] + W_sa[:, :, 1])
-        index_matrix = np.nan_to_num(index_matrix, nan=0.0)  # TODO
+        index_matrix = np.nan_to_num(index_matrix, nan=0.0)
 
         # Evaluate the policy
         train_curve.append(eval(env, index_matrix))
         rand_curve.append(eval(env, np.random.rand(num_arms, num_states)))
+        opt_curve.append(eval(env, env.opt_index))
 
         # Compute recosntruction losses
         index_error.append(np.linalg.norm(index_matrix - env.opt_index))
@@ -71,9 +73,9 @@ def train(env, cfg):
                 ):
                     Z_sa[arm_id, s, a] += 1
                     Z_sas[arm_id, s, s_dash, a] += 1
-                    # delta[arm_id, s, a] = (delta_coeff) * np.sqrt(
-                    #     1 / (Z_sa[arm_id, s, a])
-                    # )  # TODO make closer to formula?
+                    delta[arm_id, s, a] = (delta_coeff) * np.sqrt(
+                        1 / 0.002 * (Z_sa[arm_id, s, a])
+                    )  # TODO make closer to formula?
                     P_hat[arm_id, s, s_dash, a] = Z_sas[
                         arm_id, s, s_dash, a
                     ] / np.maximum(
@@ -94,17 +96,21 @@ def train(env, cfg):
                     ] + conf_coeff * np.sqrt(
                         1 / battle_count
                     )  # Make this closer to the actual formula?
-                    F_tilde = np.clip(F_tilde, 1e-6, 1 - 1e-6)  # TODO
+                    F_tilde = np.clip(F_tilde, 1e-6, 1 - 1e-6)
                 s_list = s_dash_list
 
         # Construct set of plausible transition kernels (i.e compute its center and radii)
         # P_hat = Z_sas / np.maximum(Z_sa[:, :, np.newaxis, :], 1)
 
-    performance = {"train_curve": train_curve, "rand_curve": rand_curve}
+    performance = {
+        "train_curve": train_curve,
+        "rand_curve": rand_curve,
+        "opt_curve": opt_curve,
+    }
     loss = {"index_error": index_error, "F_error": F_error, "P_error": P_error}
     print(
         "Training complete\n",
-        f"index_learnt:\n {index_matrix}",
+        f"index_learnt:\n {index_matrix}\n",
         f"true_index:\n {env.opt_index}",
     )
     return performance, loss
