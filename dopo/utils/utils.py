@@ -10,237 +10,209 @@ import sys
 RMAB_PATH = os.path.join(Path(__file__).parent.parent, "RMAB_env_instances")
 
 
+def check_stochasticity(P):
+    for n in range(P.shape[0]):
+        for s in range(P.shape[1]):
+            for a in range(P.shape[3]):
+                if not math.isclose(np.sum(P[n, s, :, a]), 1, abs_tol=1e-2):
+                    print(
+                        f"Arm {n}, State {s}, Action {a} is not stochastic summing to {np.sum(P[n, s, :, a])}"
+                    )
+                    return False
+    return True
+
+
 def load_arm(arm_name):
     P = np.load(os.path.join(RMAB_PATH, f"{arm_name}_transitions.npy"))
     R = np.load(os.path.join(RMAB_PATH, f"{arm_name}_rewards.npy"))
     return P, R
 
 
-class ELP:
-    def __init__(self, delta, P_hat, budget, n_state, n_actions, Reward, n_arms):
-        """
-        delta: delta_n(s,a) : n_arms*n_state*n_action
-        P_hat: P_hat_n(s'/s,a): n_arms* n_state*n_state*n_action
-        Reward: R_n(s): n_arms* n_state
-        budget: SCALAR
-        """
-        self.delta = delta
-        self.P_hat = P_hat
-        self.budget = budget
-        self.n_state = n_state
-        self.n_action = n_actions
-        self.R = Reward
-        self.n_arms = n_arms
+def compute_ELP(delta, P_hat, budget, n_state, n_action, Reward, n_arms):
+    """
+    delta: delta_n(s,a) : n_arms*n_state*n_action
+    P_hat: P_hat_n(s'/s,a): n_arms* n_state*n_state*n_action
+    Reward: R_n(s): n_arms* n_state
+    budget: SCALAR
+    """
 
-    def compute_ELP(self):
+    index_policy = np.zeros((n_arms, n_state, n_state, n_action))
+    opt_prob = p.LpProblem("ExtendedLP", p.LpMaximize)
+    idx_p_keys = [
+        (n, s, a, s_dash)
+        for n in range(n_arms)
+        for s in range(n_state)
+        for a in range(n_action)
+        for s_dash in range(n_state)
+    ]
+    w = p.LpVariable.dicts("w", idx_p_keys, lowBound=0, upBound=1, cat="continous")
 
-        index_policy = np.zeros(
-            (self.n_arms, self.n_state, self.n_state, self.n_action)
-        )
-        opt_prob = p.LpProblem("ExtendedLP", p.LpMaximize)
-        idx_p_keys = [
-            (n, s, a, s_dash)
-            for n in range(self.n_arms)
-            for s in range(self.n_state)
-            for a in range(self.n_action)
-            for s_dash in range(self.n_state)
+    r = Reward.copy()
+
+    # objective equation
+    opt_prob += p.lpSum(
+        [
+            w[(n, s, a, s_dash)] * r[n][s]
+            for n in range(n_arms)
+            for s in range(n_state)
+            for a in range(n_action)
+            for s_dash in range(n_state)
         ]
-        w = p.LpVariable.dicts("w", idx_p_keys, lowBound=0, upBound=1, cat="continous")
+    )
+    # list1 = [r[n][s] for n in range(n_arms) for s in range(n_state)]*self.
 
-        r = self.R.copy()
+    # Budget Constraint
 
-        # objective equation
-        opt_prob += p.lpSum(
+    opt_prob += (
+        p.lpSum(
             [
-                w[(n, s, a, s_dash)] * r[n][s]
-                for n in range(self.n_arms)
-                for s in range(self.n_state)
-                for a in range(self.n_action)
-                for s_dash in range(self.n_state)
+                w[(n, s, a, s_dash)] * a
+                for n in range(n_arms)
+                for s in range(n_state)
+                for a in range(n_action)
+                for s_dash in range(n_state)
             ]
         )
-        # list1 = [r[n][s] for n in range(self.n_arms) for s in range(self.n_state)]*self.
+        - budget
+        <= 0
+    )
 
-        # Budget Constraint
-
-        opt_prob += (
-            p.lpSum(
-                [
-                    w[(n, s, a, s_dash)] * a
-                    for n in range(self.n_arms)
-                    for s in range(self.n_state)
-                    for a in range(self.n_action)
-                    for s_dash in range(self.n_state)
-                ]
-            )
-            - self.budget
-            <= 0
-        )
-
-        for n in range(self.n_arms):
-            for s in range(self.n_state):
-                w_list = [
-                    w[(n, s, a, s_dash)]
-                    for a in range(self.n_action)
-                    for s_dash in range(self.n_state)
-                ]
-                w_1_list = [
-                    w[(n, s_dash, a_dash, s)]
-                    for a_dash in range(self.n_action)
-                    for s_dash in range(self.n_state)
-                ]
-                opt_prob += p.lpSum(w_list) - p.lpSum(w_1_list) == 0
-
-        for n in range(self.n_arms):
-
-            a_list = [
-                w[(n, s, a, s_dash)]
-                for s in range(self.n_state)
-                for a in range(self.n_action)
-                for s_dash in range(self.n_state)
-            ]
-            opt_prob += p.lpSum(a_list) - 1 == 0
-
-        # Extended part of the Linear Programming
-        for n in range(self.n_arms):
-            for s in range(self.n_state):
-                for a in range(self.n_action):
-                    for s_dash in range(self.n_state):
-
-                        b_list = [
-                            w[(n, s, a, s_dash)] for s_dash in range(self.n_state)
-                        ]
-                        opt_prob += (
-                            w[(n, s, a, s_dash)]
-                            - (self.P_hat[n][s_dash][s][a] + self.delta[n][s][a])
-                            * p.lpSum(b_list)
-                            <= 0
-                        )
-
-                        opt_prob += (
-                            -1 * w[(n, s, a, s_dash)]
-                            + p.lpSum(b_list)
-                            * (self.P_hat[n][s_dash][s][a] - self.delta[n][s][a])
-                            <= 0
-                        )
-
-        status = opt_prob.solve(p.PULP_CBC_CMD(msg=0))
-
-        print(f"Status: {p.LpStatus[status]}")
-        if p.LpStatus[status] != "Optimal":
-            print("The policy is not optimal")
-            return index_policy
-
-        for n in range(self.n_arms):
-            for s in range(self.n_state):
-                for a in range(self.n_action):
-                    for s_dash in range(self.n_state):
-                        index_policy[n, s, s_dash, a] = w[(n, s, a, s_dash)].varValue
-
-                        if (index_policy[n, s, s_dash, a]) < 0 and index_policy[
-                            n, s, s_dash, a
-                        ] > -0.001:
-                            index_policy[n, s, s_dash, a] = 0
-                        elif index_policy[n, s, s_dash, a] < -0.001:
-                            print("Invalid Value")
-                            sys.exit()
-
-        return index_policy
-
-
-class Optimal:
-    def __init__(self, reward, budget, P, n_arms, n_state, n_action):
-        """
-        P : n*s*s*a
-        R: n*s
-        w : n*s*a
-        """
-        self.R = reward
-        self.P = P
-        self.budget = budget
-        self.n_arms = n_arms
-        self.n_state = n_state
-        self.n_action = n_action
-
-    def compute_optimal(self):
-
-        optimal_policy = np.zeros((self.n_arms, self.n_state, self.n_action))
-        opt_prob = p.LpProblem("OptimalLP", p.LpMaximize)
-        p_keys = [
-            (n, s, a)
-            for n in range(self.n_arms)
-            for s in range(self.n_state)
-            for a in range(self.n_action)
-        ]
-        w = p.LpVariable.dicts("w", p_keys, lowBound=0, upBound=1, cat="continous")
-
-        r = {}
-        for n in range(self.n_arms):
-            r[n] = {}
-
-            for state in range(self.n_state):
-                r[n][state] = self.R[n][state]
-        # objective function
-        opt_prob += p.lpSum(
-            [
-                w[(n, s, a)] * r[n][s]
-                for n in range(self.n_arms)
-                for s in range(self.n_state)
-                for a in range(self.n_action)
-            ]
-        )
-        # Budget Constraint
-        opt_prob += (
-            p.lpSum(
-                [
-                    w[(n, s, a)] * a
-                    for n in range(self.n_arms)
-                    for s in range(self.n_state)
-                    for a in range(self.n_action)
-                ]
-            )
-            - self.budget
-            <= 0
-        )
-
-        for n in range(self.n_arms):
+    for n in range(n_arms):
+        for s in range(n_state):
             w_list = [
-                w[(n, s, a)] for s in range(self.n_state) for a in range(self.n_action)
+                w[(n, s, a, s_dash)]
+                for a in range(n_action)
+                for s_dash in range(n_state)
             ]
-            opt_prob += p.lpSum(w_list) - 1 == 0
+            w_1_list = [
+                w[(n, s_dash, a_dash, s)]
+                for a_dash in range(n_action)
+                for s_dash in range(n_state)
+            ]
+            opt_prob += p.lpSum(w_list) - p.lpSum(w_1_list) == 0
 
-        for n in range(self.n_arms):
-            for s in range(self.n_state):
-                for a in range(self.n_action):
-                    opt_prob += w[(n, s, a)] >= 0
+    for n in range(n_arms):
 
-        for n in range(self.n_arms):
-            for s in range(self.n_state):
-                a_list = [w[(n, s, a)] for a in range(self.n_action)]
-                b_list = [
-                    w[(n, s_dash, a_dash)] * self.P[n][s_dash][s][a_dash]
-                    for s_dash in range(self.n_state)
-                    for a_dash in range(self.n_action)
-                ]
-                opt_prob += p.lpSum(a_list) - p.lpSum(b_list) == 0
+        a_list = [
+            w[(n, s, a, s_dash)]
+            for s in range(n_state)
+            for a in range(n_action)
+            for s_dash in range(n_state)
+        ]
+        opt_prob += p.lpSum(a_list) - 1 == 0
 
-        status = opt_prob.solve(p.PULP_CBC_CMD(msg=0))
-        print(f"Status: {p.LpStatus[status]}")
-        if p.LpStatus[status] != "Optimal":
-            print("Optimal policy calculation failed")
-            return optimal_policy
+    # Extended part of the Linear Programming
+    for n in range(n_arms):
+        for s in range(n_state):
+            for a in range(n_action):
+                for s_dash in range(n_state):
 
-        for n in range(self.n_arms):
-            for s in range(self.n_state):
-                for a in range(self.n_action):
-                    optimal_policy[n, s, a] = w[(n, s, a)].varValue
-                    if (optimal_policy[n, s, a]) < 0 and optimal_policy[
-                        n, s, a
+                    b_list = [w[(n, s, a, s_dash)] for s_dash in range(n_state)]
+                    opt_prob += (
+                        w[(n, s, a, s_dash)]
+                        - (P_hat[n][s_dash][s][a] + delta[n][s][a]) * p.lpSum(b_list)
+                        <= 0
+                    )
+
+                    opt_prob += (
+                        -1 * w[(n, s, a, s_dash)]
+                        + p.lpSum(b_list) * (P_hat[n][s_dash][s][a] - delta[n][s][a])
+                        <= 0
+                    )
+
+    status = opt_prob.solve(p.PULP_CBC_CMD(msg=0))
+
+    assert p.LpStatus[status] == "Optimal", "No feasible solution :("
+
+    for n in range(n_arms):
+        for s in range(n_state):
+            for a in range(n_action):
+                for s_dash in range(n_state):
+                    index_policy[n, s, s_dash, a] = w[(n, s, a, s_dash)].varValue
+
+                    if (index_policy[n, s, s_dash, a]) < 0 and index_policy[
+                        n, s, s_dash, a
                     ] > -0.001:
-                        optimal_policy[n, s, a] = 0
-                    elif optimal_policy[n, s, a] < -0.001:
+                        index_policy[n, s, s_dash, a] = 0
+                    elif index_policy[n, s, s_dash, a] < -0.001:
                         print("Invalid Value")
                         sys.exit()
 
-        opt_value = p.value(opt_prob.objective)
-        return opt_value
+    return index_policy
+
+
+def compute_optimal(Reward, budget, P, n_arms, n_state, n_action):
+
+    optimal_policy = np.zeros((n_arms, n_state, n_action))
+    opt_prob = p.LpProblem("OptimalLP", p.LpMaximize)
+    p_keys = [
+        (n, s, a)
+        for n in range(n_arms)
+        for s in range(n_state)
+        for a in range(n_action)
+    ]
+    w = p.LpVariable.dicts("w", p_keys, lowBound=0, upBound=1, cat="continous")
+
+    r = {}
+    for n in range(n_arms):
+        r[n] = {}
+
+        for state in range(n_state):
+            r[n][state] = Reward[n][state]
+    # objective function
+    opt_prob += p.lpSum(
+        [
+            w[(n, s, a)] * r[n][s]
+            for n in range(n_arms)
+            for s in range(n_state)
+            for a in range(n_action)
+        ]
+    )
+    # Budget Constraint
+    opt_prob += (
+        p.lpSum(
+            [
+                w[(n, s, a)] * a
+                for n in range(n_arms)
+                for s in range(n_state)
+                for a in range(n_action)
+            ]
+        )
+        - budget
+        <= 0
+    )
+
+    for n in range(n_arms):
+        w_list = [w[(n, s, a)] for s in range(n_state) for a in range(n_action)]
+        opt_prob += p.lpSum(w_list) - 1 == 0
+
+    for n in range(n_arms):
+        for s in range(n_state):
+            for a in range(n_action):
+                opt_prob += w[(n, s, a)] >= 0
+
+    for n in range(n_arms):
+        for s in range(n_state):
+            a_list = [w[(n, s, a)] for a in range(n_action)]
+            b_list = [
+                w[(n, s_dash, a_dash)] * P[n][s_dash][s][a_dash]
+                for s_dash in range(n_state)
+                for a_dash in range(n_action)
+            ]
+            opt_prob += p.lpSum(a_list) - p.lpSum(b_list) == 0
+
+    status = opt_prob.solve(p.PULP_CBC_CMD(msg=0))
+    assert p.LpStatus[status] == "Optimal", "No feasible solution :("
+
+    for n in range(n_arms):
+        for s in range(n_state):
+            for a in range(n_action):
+                optimal_policy[n, s, a] = w[(n, s, a)].varValue
+                if (optimal_policy[n, s, a]) < 0 and optimal_policy[n, s, a] > -0.001:
+                    optimal_policy[n, s, a] = 0
+                elif optimal_policy[n, s, a] < -0.001:
+                    print("Invalid Value")
+                    sys.exit()
+
+    opt_value = p.value(opt_prob.objective)
+    return opt_value, optimal_policy

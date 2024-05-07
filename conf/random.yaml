@@ -1,0 +1,20 @@
+defaults:
+  - _self_
+
+exp:
+  name: "random_env"
+
+num_seeds : 3
+H : 20
+K : 100
+T : 10
+delta_coeff : 0.5
+conf_coeff : 0.1
+
+
+
+env_config:
+  arm: "random"
+  num_types: 5
+  num_arms_per_type: 2
+  arm_constraint: 3
