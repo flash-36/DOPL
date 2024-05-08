@@ -2,6 +2,10 @@ import numpy as np
 from tqdm import tqdm
 from dopo.utils import compute_ELP, check_stochasticity
 from dopo.train.helpers import apply_index_policy, compute_F_true
+import logging
+
+log = logging.getLogger(__name__)
+delta_scheduler = [0.5] * 1000 + [0.4] * 1000 + [0.3] * 10000 + [0.2] * 10000
 
 
 def train(env, cfg):
@@ -73,14 +77,24 @@ def train(env, cfg):
                 ):
                     Z_sa[arm_id, s, a] += 1
                     Z_sas[arm_id, s, s_dash, a] += 1
-                    delta[arm_id, s, a] = (delta_coeff) * np.sqrt(
-                        1 / 0.002 * (Z_sa[arm_id, s, a])
-                    )  # TODO make closer to formula?
+                    # delta[arm_id, s, a] = np.sqrt(
+                    #     np.log(
+                    #         4
+                    #         * num_states
+                    #         * num_actions
+                    #         * num_arms
+                    #         * (k + 1)
+                    #         * H
+                    #         / (delta_coeff)
+                    #     )
+                    #     / (2 * Z_sa[arm_id, s, a])
+                    # )  # TODO make closer to formula?
+                    delta[arm_id, s, a] = delta_scheduler[int(Z_sa[arm_id, s, a])]
+                    # print(delta[arm_id, s, a])
+                    # breakpoint()
                     P_hat[arm_id, s, s_dash, a] = Z_sas[
                         arm_id, s, s_dash, a
-                    ] / np.maximum(
-                        1, Z_sa[arm_id, s, a]
-                    )  # TODO
+                    ] / np.maximum(1, Z_sa[arm_id, s, a])
                 for record in info["duelling_results"]:
                     winner, loser = record
                     W[winner, s_list[winner], loser, s_list[loser]] += 1

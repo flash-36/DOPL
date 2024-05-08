@@ -7,11 +7,13 @@ from dopo.utils import load_arm
 from dopo.train import train
 from dopo.train import get_opt_performance
 from dopo.plot import plot_training_performance, plot_reconstruction_loss
+import logging
+
+log = logging.getLogger(__name__)
 
 
 @hydra.main(config_path="conf", config_name="cpap", version_base=None)
 def main(cfg: DictConfig):
-
     # Extract environment configuration values
     env_config = cfg.env_config
     arm_prefix = env_config.arm
