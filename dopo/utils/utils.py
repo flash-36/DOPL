@@ -109,18 +109,21 @@ def compute_ELP(delta, P_hat, budget, n_state, n_action, Reward, n_arms):
                     b_list = [w[(n, s, a, s_dash)] for s_dash in range(n_state)]
                     opt_prob += (
                         w[(n, s, a, s_dash)]
-                        - (P_hat[n][s_dash][s][a] + delta[n][s][a]) * p.lpSum(b_list)
+                        - (P_hat[n][s][s_dash][a] + delta[n][s][a]) * p.lpSum(b_list)
                         <= 0
                     )
 
                     opt_prob += (
                         -1 * w[(n, s, a, s_dash)]
-                        + p.lpSum(b_list) * (P_hat[n][s_dash][s][a] - delta[n][s][a])
+                        + p.lpSum(b_list) * (P_hat[n][s][s_dash][a] - delta[n][s][a])
                         <= 0
                     )
 
-    status = opt_prob.solve(p.PULP_CBC_CMD(msg=0))
-
+    # status = opt_prob.solve(p.PULP_CBC_CMD(msg=0))
+    status = opt_prob.solve(p.GUROBI(msg=0))
+    # status = opt_prob.solve(p.GLPK_CMD(msg=0))
+    if p.LpStatus[status] != "Optimal":
+        breakpoint()
     assert p.LpStatus[status] == "Optimal", "No feasible solution :("
 
     for n in range(n_arms):

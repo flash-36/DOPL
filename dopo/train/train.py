@@ -5,10 +5,11 @@ from dopo.train.helpers import apply_index_policy, compute_F_true
 import logging
 
 log = logging.getLogger(__name__)
-delta_scheduler = [0.5] * 1000 + [0.4] * 1000 + [0.3] * 10000 + [0.2] * 10000
+# delta_scheduler = [0.5] * 2000 + [0.2] * 2000 + [0.1] * 20000 + [0.05] * 20000
 
 
 def train(env, cfg):
+    FirstTimeWarning = True
     # Extract training parameters
     K = cfg["K"]
     H = cfg["H"]
@@ -57,9 +58,9 @@ def train(env, cfg):
         index_matrix = np.nan_to_num(index_matrix, nan=0.0)
 
         # Evaluate the policy
-        train_curve.append(eval(env, index_matrix))
-        rand_curve.append(eval(env, np.random.rand(num_arms, num_states)))
-        opt_curve.append(eval(env, env.opt_index))
+        train_curve.append(eval(10, env, index_matrix))
+        rand_curve.append(eval(10, env, np.random.rand(num_arms, num_states)))
+        opt_curve.append(eval(10, env, env.opt_index))
 
         # Compute recosntruction losses
         index_error.append(np.linalg.norm(index_matrix - env.opt_index))
@@ -77,24 +78,37 @@ def train(env, cfg):
                 ):
                     Z_sa[arm_id, s, a] += 1
                     Z_sas[arm_id, s, s_dash, a] += 1
-                    # delta[arm_id, s, a] = np.sqrt(
-                    #     np.log(
-                    #         4
-                    #         * num_states
-                    #         * num_actions
-                    #         * num_arms
-                    #         * (k + 1)
-                    #         * H
-                    #         / (delta_coeff)
-                    #     )
-                    #     / (2 * Z_sa[arm_id, s, a])
-                    # )  # TODO make closer to formula?
-                    delta[arm_id, s, a] = delta_scheduler[int(Z_sa[arm_id, s, a])]
-                    # print(delta[arm_id, s, a])
-                    # breakpoint()
+                    delta[arm_id, s, a] = np.sqrt(
+                        np.log(
+                            4
+                            * num_states
+                            * num_actions
+                            * num_arms
+                            * (k + 1)
+                            * H
+                            * env.T
+                            / (delta_coeff)
+                        )
+                        / (2 * Z_sa[arm_id, s, a])
+                    )
+                    delta[arm_id, s, a] = max(
+                        delta[arm_id, s, a], 0.06
+                    )  # For numerical stability
+
+                    if delta[arm_id, s, a] == 0.06 and FirstTimeWarning:
+                        print(f"Delta is too small for iteration {k}")
+                        FirstTimeWarning = False
+                    # delta[arm_id, s, a] = delta_scheduler[int(Z_sa[arm_id, s, a])]
                     P_hat[arm_id, s, s_dash, a] = Z_sas[
                         arm_id, s, s_dash, a
                     ] / np.maximum(1, Z_sa[arm_id, s, a])
+                    true_diff = np.abs(
+                        P_true[arm_id, s, s_dash, a] - P_hat[arm_id, s, s_dash, a]
+                    )
+                    if true_diff > delta[arm_id, s, a]:
+                        print(
+                            f"Expected to fail ---- {true_diff} > {delta[arm_id, s, a]}"
+                        )
                 for record in info["duelling_results"]:
                     winner, loser = record
                     W[winner, s_list[winner], loser, s_list[loser]] += 1
@@ -107,14 +121,16 @@ def train(env, cfg):
                     )
                     F_tilde[winner, s_list[winner], loser, s_list[loser]] = F_hat[
                         winner, s_list[winner], loser, s_list[loser]
-                    ] + conf_coeff * np.sqrt(
-                        1 / battle_count
-                    )  # Make this closer to the actual formula?
-                    F_tilde = np.clip(F_tilde, 1e-6, 1 - 1e-6)
+                    ] + np.sqrt(
+                        np.log(
+                            4 * num_states * num_arms * (k + 1) * H * env.T / conf_coeff
+                        )
+                        / (2 * battle_count)
+                    )
+                    F_tilde = np.clip(
+                        F_tilde, 1e-6, 1 - 1e-6
+                    )  # For numerical stability
                 s_list = s_dash_list
-
-        # Construct set of plausible transition kernels (i.e compute its center and radii)
-        # P_hat = Z_sas / np.maximum(Z_sa[:, :, np.newaxis, :], 1)
 
     performance = {
         "train_curve": train_curve,
@@ -122,21 +138,19 @@ def train(env, cfg):
         "opt_curve": opt_curve,
     }
     loss = {"index_error": index_error, "F_error": F_error, "P_error": P_error}
-    print(
-        "Training complete\n",
-        f"index_learnt:\n {index_matrix}\n",
-        f"true_index:\n {env.opt_index}",
-    )
     return performance, loss
 
 
 # Evaluate the policy
-def eval(env, index_matrix):
-    s_list = env.reset()
-    total_reward = 0
-    for t in range(env.T):
-        action = apply_index_policy(s_list, index_matrix, env.arm_constraint)
-        s_dash_list, reward, _, _, _ = env.step(action)
-        total_reward += reward
-        s_list = s_dash_list
-    return total_reward
+def eval(num_episodes, env, index_matrix):
+    episode_rewards = []
+    for ep_num in range(num_episodes):
+        s_list = env.reset()
+        episode_reward = 0
+        for t in range(env.T):
+            action = apply_index_policy(s_list, index_matrix, env.arm_constraint)
+            s_dash_list, reward, _, _, _ = env.step(action)
+            episode_reward += reward
+            s_list = s_dash_list
+        episode_rewards.append(episode_reward)
+    return np.mean(episode_rewards)

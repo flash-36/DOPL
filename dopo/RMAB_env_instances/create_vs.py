@@ -9,55 +9,53 @@ def main():
 
     # Initialize and define transition and reward matrices for each arm separately
     P_arm1, R_arm1 = initialize_arm1(n_states, n_actions)
-    
 
     # Verify the transition matrices
     verify_transitions(P_arm1, "Arm 1")
-    
 
     # Save matrices to files
     save_matrices(P_arm1, R_arm1, "arm_type_1")
-    
 
 
 def initialize_arm1(n_states, n_actions):
     # Transition matrices for arm 1
     P = np.zeros((n_states, n_states, n_actions))
-    P[:, :, 0] = [[1, 0, 0, 0 , 0, 0 , 0, 0 ,0 ,0],
-                  [0.6, 0.4, 0, 0 , 0, 0 , 0, 0 ,0 ,0], 
-                  [0, 0.6, 0.4, 0 , 0, 0 , 0, 0 ,0 ,0], 
-                  [0, 0, 0.6, 0.4 , 0, 0 , 0, 0 ,0 ,0],
-                  [0, 0, 0, 0.6 , 0.4, 0 , 0, 0 ,0 ,0],
-                  [0, 0, 0, 0 , 0.6, 0.4 , 0, 0 ,0 ,0],
-                  [0, 0, 0, 0 , 0, 0.6 , 0.4, 0 ,0 ,0],
-                  [0, 0, 0, 0 , 0, 0 , 0.6, 0.4 ,0,0],
-                  [0, 0, 0, 0 , 0, 0 , 0, 0.6 ,0.4 ,0],
-                  [0, 0, 0, 0 , 0, 0 , 0, 0 ,0.6 ,0.4]]   # Action 0
-    
-    P[:, :, 1] = [[1, 0, 0, 0 , 0, 0 , 0, 0 ,0 ,0],
-                  [0, 1, 0, 0 , 0, 0 , 0, 0 ,0 ,0], 
-                  [0, 0, 1, 0 , 0, 0 , 0, 0 ,0 ,0], 
-                  [0, 0, 0, 1 , 0, 0 , 0, 0 ,0 ,0],
-                  [0, 0, 0, 0 , 1, 0 , 0, 0 ,0 ,0],
-                  [0, 0, 0, 0 , 0, 1 , 0, 0 ,0 ,0],
-                  [0, 0, 0, 0 , 0, 0 , 1, 0 ,0 ,0],
-                  [0, 0, 0, 0 , 0, 0 , 0, 1 ,0 ,0],
-                  [0, 0, 0, 0 , 0, 0 , 0, 0 ,1 ,0],
-                  [0, 0, 0, 0 , 0, 0 , 0, 0 ,0 ,1]]  # Action 1
+    P[:, :, 0] = [
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0.6, 0.4, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0.6, 0.4, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0.6, 0.4, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0.6, 0.4, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0.6, 0.4, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0.6, 0.4, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0.6, 0.4, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0.6, 0.4, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0.6, 0.4],
+    ]  # Action 0
+
+    P[:, :, 1] = [
+        [0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    ]  # Action 1
 
     # Reward matrix for arm 1
     R = np.zeros((n_states, n_actions))
     for state_index in range(n_states):
-        if(state_index==0):
-            R[state_index,:] = -1
+        if state_index == 0:
+            R[state_index, :] = 0
         else:
-            R[state_index, :] = 1/(state_index+1)
+            R[state_index, :] = 1 / (state_index + 1)
     print(P)
     print(R)
     return P, R
-
-
-
 
 
 def verify_transitions(P, arm_description):

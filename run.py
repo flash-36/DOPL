@@ -28,7 +28,6 @@ def main(cfg: DictConfig):
         P, R = load_arm(f"{arm_prefix}_arm_type_{i}")
         P_list.extend([P] * num_arms_per_type)
         R_list.extend([R] * num_arms_per_type)
-
     # Check that the arm constraint does not exceed the number of arms
     total_arms = num_types * num_arms_per_type
     assert (
@@ -41,6 +40,7 @@ def main(cfg: DictConfig):
 
     # Get optimal performance and index matrix
     opt_cost, opt_index = get_opt_performance(env)
+    opt_index = np.nan_to_num(opt_index, nan=0.0)
     env.opt_index = opt_index
 
     # Perform training and evaluation using parameters
