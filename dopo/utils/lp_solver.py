@@ -120,3 +120,69 @@ def compute_ELP_pyomo(delta, P_hat, budget, n_state, n_action, Reward, n_arms):
     else:
         # print("Solver Status:", result.solver.status)
         return None
+
+
+def compute_optimal_pyomo(Reward, budget, P, n_arms, n_state, n_action):
+    model = ConcreteModel()
+
+    # Define index sets
+    model.N = RangeSet(0, n_arms - 1)
+    model.S = RangeSet(0, n_state - 1)
+    model.A = RangeSet(0, n_action - 1)
+
+    # Define the decision variables
+    model.w = Var(model.N, model.S, model.A, bounds=(0, 1))
+
+    # Objective function: Maximize the weighted reward
+    model.objective = Objective(
+        expr=sum(
+            model.w[n, s, a] * Reward[n][s]
+            for n in model.N
+            for s in model.S
+            for a in model.A
+        ),
+        sense=maximize,
+    )
+
+    # Budget constraint
+    model.budget_constraint = Constraint(
+        expr=sum(
+            model.w[n, s, a] * a for n in model.N for s in model.S for a in model.A
+        )
+        <= budget
+    )
+
+    # Sum of probabilities equals 1 for each arm
+    def sum_prob_rule(model, n):
+        return sum(model.w[n, s, a] for s in model.S for a in model.A) == 1
+
+    model.sum_prob = Constraint(model.N, rule=sum_prob_rule)
+
+    # Ensure probabilities are valid and transition probabilities are conserved
+    def transition_rule(model, n, s):
+        return sum(model.w[n, s, a] for a in model.A) == sum(
+            model.w[n, s_dash, a_dash] * P[n][s_dash][s][a_dash]
+            for s_dash in model.S
+            for a_dash in model.A
+        )
+
+    model.transition = Constraint(model.N, model.S, rule=transition_rule)
+
+    # Solve the model using Gurobi
+    solver = SolverFactory("gurobi")
+    result = solver.solve(model, tee=True)
+
+    # Check the solution status and extract the solution
+    optimal_policy = np.zeros((n_arms, n_state, n_action))
+    if (
+        result.solver.status == SolverStatus.ok
+        and result.solver.termination_condition == TerminationCondition.optimal
+    ):
+        for n in model.N:
+            for s in model.S:
+                for a in model.A:
+                    optimal_policy[n, s, a] = model.w[n, s, a].value
+        opt_value = value(model.objective)
+        return opt_value, optimal_policy
+    else:
+        raise Exception("No feasible solution :(")
