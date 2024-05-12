@@ -2,7 +2,7 @@ defaults:
   - _self_
 
 exp:
-  name: "deadline_env"
+  name: "wireless_env"
 
 num_seeds : 3
 H : 20
@@ -14,7 +14,7 @@ conf_coeff : 1e-9
 
 
 env_config:
-  arm: "deadline"
+  arm: "wireless"
   num_types: 1
   num_arms_per_type: 10
   arm_constraint: 4

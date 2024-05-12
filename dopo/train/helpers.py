@@ -22,7 +22,7 @@ def get_opt_performance(env):
     num_actions = env.R_list[0].shape[1]
     # Compute opt objective for problem
     r_n_s = np.array(env.R_list)[:, :, 0]
-    optimal_cost, opt_occupancy = compute_optimal_pyomo(
+    optimal_cost, opt_occupancy = compute_optimal(
         r_n_s,
         env.arm_constraint,
         np.array(env.P_list),

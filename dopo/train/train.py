@@ -50,7 +50,7 @@ def train(env, cfg):
         # Compute the corresponding index policy
         Q_n_s = np.log((1 - F_tilde[ref_arm][ref_state]) / F_tilde[ref_arm][ref_state])
         ##compute the policy
-        solution = compute_ELP_pyomo(
+        solution = compute_ELP(
             delta,
             P_hat,
             env.arm_constraint,
