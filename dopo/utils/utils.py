@@ -1,7 +1,6 @@
 from pathlib import Path
 import os
 import numpy as np
-import numpy as np
 import math
 import pulp as p
 import sys
@@ -119,8 +118,8 @@ def compute_ELP(delta, P_hat, budget, n_state, n_action, Reward, n_arms):
                         <= 0
                     )
 
-    # status = opt_prob.solve(p.PULP_CBC_CMD(msg=0))
-    status = opt_prob.solve(p.GUROBI(msg=0))
+    status = opt_prob.solve(p.PULP_CBC_CMD(msg=1))
+    # status = opt_prob.solve(p.GUROBI(msg=0))
     # status = opt_prob.solve(p.GLPK_CMD(msg=0))
     if p.LpStatus[status] != "Optimal":
         breakpoint()

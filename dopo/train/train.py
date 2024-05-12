@@ -1,6 +1,6 @@
 import numpy as np
 from tqdm import tqdm
-from dopo.utils import compute_ELP, check_stochasticity
+from dopo.utils import compute_ELP, compute_ELP_pyomo
 from dopo.train.helpers import apply_index_policy, compute_F_true
 import logging
 
@@ -50,9 +50,22 @@ def train(env, cfg):
         # Compute the corresponding index policy
         Q_n_s = np.log((1 - F_tilde[ref_arm][ref_state]) / F_tilde[ref_arm][ref_state])
         ##compute the policy
-        W_sas = compute_ELP(
-            delta, P_hat, env.arm_constraint, num_states, num_actions, Q_n_s, num_arms
+        solution = compute_ELP_pyomo(
+            delta,
+            P_hat,
+            env.arm_constraint,
+            num_states,
+            num_actions,
+            Q_n_s + np.ones_like(Q_n_s),
+            num_arms,
         )
+        if solution is not None:
+            W_sas = solution
+        else:
+            if k == 0:
+                print("No feasible solution in first iteration!")
+            else:
+                print("No feasible solution! Retaining the previous solution.")
         W_sa = np.sum(W_sas, axis=2)
         index_matrix = W_sa[:, :, 1] / (W_sa[:, :, 0] + W_sa[:, :, 1])
         index_matrix = np.nan_to_num(index_matrix, nan=0.0)
@@ -91,13 +104,13 @@ def train(env, cfg):
                         )
                         / (2 * Z_sa[arm_id, s, a])
                     )
-                    delta[arm_id, s, a] = max(
-                        delta[arm_id, s, a], 0.06
-                    )  # For numerical stability
+                    # delta[arm_id, s, a] = max(
+                    #     delta[arm_id, s, a], 0.06
+                    # )  # For numerical stability
 
-                    if delta[arm_id, s, a] == 0.06 and FirstTimeWarning:
-                        print(f"Delta is too small for iteration {k}")
-                        FirstTimeWarning = False
+                    # if delta[arm_id, s, a] == 0.06 and FirstTimeWarning:
+                    #     print(f"Delta is too small for iteration {k}")
+                    #     FirstTimeWarning = False
                     # delta[arm_id, s, a] = delta_scheduler[int(Z_sa[arm_id, s, a])]
                     P_hat[arm_id, s, s_dash, a] = Z_sas[
                         arm_id, s, s_dash, a
@@ -130,6 +143,8 @@ def train(env, cfg):
                     F_tilde = np.clip(
                         F_tilde, 1e-6, 1 - 1e-6
                     )  # For numerical stability
+                    F_tilde = np.clip(F_tilde, 0.2689, 0.7311)
+
                 s_list = s_dash_list
 
     performance = {
