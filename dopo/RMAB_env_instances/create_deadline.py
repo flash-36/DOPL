@@ -24,7 +24,7 @@ def generate_deadline_matrices(max_charge, max_deadline):
         if charge == 0:
             R[possible_states.index(state)] = max_charge
         elif deadline == 0:
-            R[possible_states.index(state)] = -charge
+            R[possible_states.index(state)] = -max_charge
         else:
             R[possible_states.index(state)] = 0
     # Reward is same for both actions
@@ -77,7 +77,7 @@ def generate_and_save_multiple_mdps(num_mdps, max_charge, max_deadline):
 def main():
     num_mdps = 1
     max_charge = 5
-    max_deadline = 5
+    max_deadline = 3
 
     generate_and_save_multiple_mdps(num_mdps, max_charge, max_deadline)
 
