@@ -43,13 +43,20 @@ def train(env, cfg):
     # True values
     P_true = np.array(env.P_list)
     F_true = compute_F_true(env)
-
+    # Trackers for debugging
+    confidence_F = []
+    confidence_P = []
     # Start training
     failure_point = K
     for k in tqdm(range(K)):
         # check_stochasticity(P_hat)
         # Compute the corresponding index policy
+        # breakpoint()
         Q_n_s = np.log((1 - F_tilde[ref_arm][ref_state]) / F_tilde[ref_arm][ref_state])
+        print(np.min(delta))
+        print(Q_n_s)
+        if confidence_F:
+            print(confidence_F[-1])
         ##compute the policy
         solution = compute_ELP_pyomo(
             delta,
@@ -107,6 +114,7 @@ def train(env, cfg):
                         )
                         / (2 * Z_sa[arm_id, s, a])
                     )
+                    confidence_P.append(delta[arm_id, s, a])
                     # delta[arm_id, s, a] = max(
                     #     delta[arm_id, s, a], 0.06
                     # )  # For numerical stability
@@ -140,7 +148,6 @@ def train(env, cfg):
                     F_hat[loser, s_list[loser], winner, s_list[winner]] = (
                         1 - F_hat[winner, s_list[winner], loser, s_list[loser]]
                     )
-                    # F_hat = np.clip(F_hat, 0.2689, 0.7311)
                     ########################################
                     F_tilde[winner, s_list[winner], loser, s_list[loser]] = F_hat[
                         winner, s_list[winner], loser, s_list[loser]
@@ -160,11 +167,26 @@ def train(env, cfg):
                         )
                         / (2 * battle_count)
                     )
+                    confidence_F.append(
+                        np.sqrt(
+                            np.log(
+                                4
+                                * num_states
+                                * num_arms
+                                * (k + 1)
+                                * H
+                                * env.T
+                                / conf_coeff
+                            )
+                            / (2 * battle_count)
+                        )
+                    )
                     # F_tilde = np.clip(F_tilde, 0.2689, 0.7311)
                     ########################################
-                    F_tilde = np.clip(
-                        F_tilde, 1e-6, 1 - 1e-6
-                    )  # For numerical stability
+                    # F_tilde = np.clip(
+                    #     F_tilde, 1e-6, 1 - 1e-6
+                    # )  # For numerical stability
+                    F_tilde = np.clip(F_tilde, 0.2689, 0.7311)
                 s_list = s_dash_list
 
     performance = {
@@ -173,6 +195,7 @@ def train(env, cfg):
         "opt_curve": opt_curve,
     }
     loss = {"index_error": index_error, "F_error": F_error, "P_error": P_error}
+    # breakpoint()
     return performance, loss, failure_point
 
 
