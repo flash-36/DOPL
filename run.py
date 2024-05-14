@@ -30,10 +30,10 @@ def main(cfg: DictConfig):
         P_list.extend([P] * num_arms_per_type)
         R_list.extend([R] * num_arms_per_type)
     # Shffle ordering of arms so as to not have biases
-    # indices = list(range(len(P_list)))
-    # random.shuffle(indices)
-    # P_list = [P_list[i] for i in indices]
-    # R_list = [R_list[i] for i in indices]
+    indices = list(range(len(P_list)))
+    random.shuffle(indices)
+    P_list = [P_list[i] for i in indices]
+    R_list = [R_list[i] for i in indices]
     # Check that the arm constraint does not exceed the number of arms
     total_arms = num_types * num_arms_per_type
     assert (
@@ -47,8 +47,6 @@ def main(cfg: DictConfig):
     # Get optimal performance and index matrix
     opt_cost, opt_index = get_opt_performance(env)
     opt_index = np.nan_to_num(opt_index, nan=0.0)
-    opt_index[0][0] = 1
-    opt_index[1][0] = 1
     env.opt_index = opt_index
 
     # Perform training and evaluation using parameters
