@@ -8,11 +8,12 @@ from dopo.train import train
 from dopo.train import get_opt_performance
 from dopo.plot import plot_training_performance, plot_reconstruction_loss
 import logging
+import random
 
 log = logging.getLogger(__name__)
 
 
-@hydra.main(config_path="conf", config_name="cpap", version_base=None)
+@hydra.main(config_path="conf", config_name="toy", version_base=None)
 def main(cfg: DictConfig):
     # Extract environment configuration values
     env_config = cfg.env_config
@@ -28,6 +29,11 @@ def main(cfg: DictConfig):
         P, R = load_arm(f"{arm_prefix}_arm_type_{i}")
         P_list.extend([P] * num_arms_per_type)
         R_list.extend([R] * num_arms_per_type)
+    # Shffle ordering of arms so as to not have biases
+    # indices = list(range(len(P_list)))
+    # random.shuffle(indices)
+    # P_list = [P_list[i] for i in indices]
+    # R_list = [R_list[i] for i in indices]
     # Check that the arm constraint does not exceed the number of arms
     total_arms = num_types * num_arms_per_type
     assert (
@@ -41,19 +47,25 @@ def main(cfg: DictConfig):
     # Get optimal performance and index matrix
     opt_cost, opt_index = get_opt_performance(env)
     opt_index = np.nan_to_num(opt_index, nan=0.0)
+    opt_index[0][0] = 1
+    opt_index[1][0] = 1
     env.opt_index = opt_index
 
     # Perform training and evaluation using parameters
     performances = []
     losses = []
+    failure_points = []
     for seeds in range(cfg.num_seeds):
         print("*" * 40, f"Training Seed {seeds+1}", "*" * 40)
-        performance, loss = train(env, cfg)
+        performance, loss, failure_point = train(env, cfg)
         performances.append(performance)
         losses.append(loss)
+        failure_points.append(failure_point)
 
     # Plot the training performance
-    plot_training_performance(performances, opt_cost, cfg["exp"]["name"])
+    plot_training_performance(
+        performances, opt_cost, min(failure_points), cfg["exp"]["name"]
+    )
     plot_reconstruction_loss(losses, cfg["exp"]["name"])
 
 

@@ -5,11 +5,11 @@ exp:
   name: "cpap_env"
 
 num_seeds : 3
-H : 20
+H : 1
 K : 100
-T : 20
-delta_coeff : 1e-8
-conf_coeff : 1e-8
+T : 400
+delta_coeff : 1e-4
+conf_coeff : 1e-4
 
 
 

@@ -4,7 +4,7 @@ import hydra
 import os
 
 
-def plot_training_performance(performances, opt_cost, exp_name):
+def plot_training_performance(performances, opt_cost, failure_point, exp_name):
     train_curves_list = []
     rand_curves_list = []
     opt_curves_list = []
@@ -54,6 +54,7 @@ def plot_training_performance(performances, opt_cost, exp_name):
         alpha=0.3,
     )
     plt.axhline(opt_cost, color="g", linestyle="--", label="Optimal Cost")
+    plt.axvline(failure_point, color="gray", linestyle="-.", label="Failure Point")
 
     plt.legend()
     plt.title(f"Training Performance - {exp_name}")

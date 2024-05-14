@@ -122,8 +122,8 @@ def compute_ELP(delta, P_hat, budget, n_state, n_action, Reward, n_arms):
     # status = opt_prob.solve(p.GUROBI(msg=0))
     # status = opt_prob.solve(p.GLPK_CMD(msg=0))
     if p.LpStatus[status] != "Optimal":
-        breakpoint()
-    assert p.LpStatus[status] == "Optimal", "No feasible solution :("
+        return None
+    # assert p.LpStatus[status] == "Optimal", "No feasible solution :("
 
     for n in range(n_arms):
         for s in range(n_state):

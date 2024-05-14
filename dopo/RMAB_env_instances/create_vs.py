@@ -21,7 +21,6 @@ def initialize_arm1(n_states, n_actions):
     # Transition matrices for arm 1
     P = np.zeros((n_states, n_states, n_actions))
     P[:, :, 0] = [
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         [0.6, 0.4, 0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0.6, 0.4, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0.6, 0.4, 0, 0, 0, 0, 0, 0],
@@ -31,6 +30,7 @@ def initialize_arm1(n_states, n_actions):
         [0, 0, 0, 0, 0, 0, 0.6, 0.4, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0.6, 0.4, 0],
         [0, 0, 0, 0, 0, 0, 0, 0, 0.6, 0.4],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ]  # Action 0
 
     P[:, :, 1] = [

@@ -20,7 +20,7 @@ def train(env, cfg):
     num_arms = len(env.P_list)
     num_states = env.P_list[0].shape[0]
     num_actions = env.R_list[0].shape[1]
-    ref_arm, ref_state = 1, 2  # TODO
+    ref_arm, ref_state = 0, 0  # TODO
     # Initialze placeholders
     W = np.zeros((num_arms, num_states, num_arms, num_states))
     P_hat = np.ones((num_arms, num_states, num_states, num_actions)) / num_states
@@ -29,7 +29,7 @@ def train(env, cfg):
 
     F_tilde = np.ones((num_arms, num_states, num_arms, num_states)) * 0.5
     F_hat = np.ones((num_arms, num_states, num_arms, num_states)) * 0.5
-    delta = np.ones((num_arms, num_states, num_actions)) * delta_coeff
+    delta = np.ones((num_arms, num_states, num_actions))
 
     # Performance trackers
     train_curve = []
@@ -44,13 +44,14 @@ def train(env, cfg):
     P_true = np.array(env.P_list)
     F_true = compute_F_true(env)
 
-    # Start traing
+    # Start training
+    failure_point = K
     for k in tqdm(range(K)):
         # check_stochasticity(P_hat)
         # Compute the corresponding index policy
         Q_n_s = np.log((1 - F_tilde[ref_arm][ref_state]) / F_tilde[ref_arm][ref_state])
         ##compute the policy
-        solution = compute_ELP(
+        solution = compute_ELP_pyomo(
             delta,
             P_hat,
             env.arm_constraint,
@@ -66,6 +67,8 @@ def train(env, cfg):
                 print("No feasible solution in first iteration!")
             else:
                 print("No feasible solution! Retaining the previous solution.")
+                if failure_point == K:
+                    failure_point = k
         W_sa = np.sum(W_sas, axis=2)
         index_matrix = W_sa[:, :, 1] / (W_sa[:, :, 0] + W_sa[:, :, 1])
         index_matrix = np.nan_to_num(index_matrix, nan=0.0)
@@ -77,7 +80,7 @@ def train(env, cfg):
 
         # Compute recosntruction losses
         index_error.append(np.linalg.norm(index_matrix - env.opt_index))
-        F_error.append(np.linalg.norm(F_tilde - F_true))
+        F_error.append(np.linalg.norm(F_hat - F_true))
         P_error.append(np.linalg.norm(P_hat - P_true))
 
         # Update F_tilde according to alg 2
@@ -118,10 +121,11 @@ def train(env, cfg):
                     true_diff = np.abs(
                         P_true[arm_id, s, s_dash, a] - P_hat[arm_id, s, s_dash, a]
                     )
-                    if true_diff > delta[arm_id, s, a]:
+                    if true_diff > delta[arm_id, s, a] or delta[arm_id, s, a] <= 0.0:
                         print(
                             f"Expected to fail ---- {true_diff} > {delta[arm_id, s, a]}"
                         )
+                        SystemExit()
                 for record in info["duelling_results"]:
                     winner, loser = record
                     W[winner, s_list[winner], loser, s_list[loser]] += 1
@@ -132,6 +136,12 @@ def train(env, cfg):
                     F_hat[winner, s_list[winner], loser, s_list[loser]] = (
                         W[winner, s_list[winner], loser, s_list[loser]] / battle_count
                     )
+                    ## Ujwal modification of algorithm #####
+                    F_hat[loser, s_list[loser], winner, s_list[winner]] = (
+                        1 - F_hat[winner, s_list[winner], loser, s_list[loser]]
+                    )
+                    # F_hat = np.clip(F_hat, 0.2689, 0.7311)
+                    ########################################
                     F_tilde[winner, s_list[winner], loser, s_list[loser]] = F_hat[
                         winner, s_list[winner], loser, s_list[loser]
                     ] + np.sqrt(
@@ -140,11 +150,21 @@ def train(env, cfg):
                         )
                         / (2 * battle_count)
                     )
+
+                    ## Ujwal modification of algorithm #####
+                    F_tilde[loser, s_list[loser], winner, s_list[winner]] = F_hat[
+                        loser, s_list[loser], winner, s_list[winner]
+                    ] + np.sqrt(
+                        np.log(
+                            4 * num_states * num_arms * (k + 1) * H * env.T / conf_coeff
+                        )
+                        / (2 * battle_count)
+                    )
+                    # F_tilde = np.clip(F_tilde, 0.2689, 0.7311)
+                    ########################################
                     F_tilde = np.clip(
                         F_tilde, 1e-6, 1 - 1e-6
                     )  # For numerical stability
-                    F_tilde = np.clip(F_tilde, 0.2689, 0.7311)
-
                 s_list = s_dash_list
 
     performance = {
@@ -153,7 +173,7 @@ def train(env, cfg):
         "opt_curve": opt_curve,
     }
     loss = {"index_error": index_error, "F_error": F_error, "P_error": P_error}
-    return performance, loss
+    return performance, loss, failure_point
 
 
 # Evaluate the policy

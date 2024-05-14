@@ -5,16 +5,16 @@ exp:
   name: "random_env"
 
 num_seeds : 3
-H : 20
+H : 1
 K : 100
-T : 10
-delta_coeff : 0.5
-conf_coeff : 0.1
+T : 400
+delta_coeff : 1e-08
+conf_coeff : 1e-08
 
 
 
 env_config:
   arm: "random"
   num_types: 5
-  num_arms_per_type: 2
-  arm_constraint: 3
+  num_arms_per_type: 25
+  arm_constraint: 10
