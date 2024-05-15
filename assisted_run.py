@@ -53,8 +53,8 @@ def main(cfg: DictConfig):
     failure_points = []
     for seeds in range(cfg.num_seeds):
         print("*" * 40, f"Training Seed {seeds+1}", "*" * 40)
-        performance, loss, failure_point = train(env, cfg)
-        # performance, loss, failure_point = assisted_train(env, cfg)
+        # performance, loss, failure_point = train(env, cfg)
+        performance, loss, failure_point = assisted_train(env, cfg)
         performances.append(performance)
         losses.append(loss)
         failure_points.append(failure_point)

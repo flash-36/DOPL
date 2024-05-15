@@ -25,7 +25,7 @@ def pick_random_ref(W):
     return ref_arm, ref_state
 
 
-def train(env, cfg):
+def assisted_train(env, cfg):
     FirstTimeWarning = True
     # Extract training parameters
     K = cfg["K"]
@@ -65,7 +65,8 @@ def train(env, cfg):
     # Start training
     failure_point = K
     for k in tqdm(range(K)):
-        ref_arm, ref_state = pick_random_ref(W)
+        ref_arm, ref_state = 0, 0
+        # ref_arm, ref_state = pick_random_ref(W)
         # ref_arm, ref_state = pick_best_ref(W)
         # check_stochasticity(P_hat)
         # Compute the corresponding index policy
@@ -79,11 +80,13 @@ def train(env, cfg):
         ##compute the policy
         solution = compute_ELP_pyomo(
             delta,
+            # P_true,
             P_hat,
             env.arm_constraint,
             num_states,
             num_actions,
-            Q_n_s,
+            # Q_n_s,
+            Q_true,
             num_arms,
         )
         if solution is not None:
@@ -95,8 +98,10 @@ def train(env, cfg):
                 print("No feasible solution! Retaining the previous solution.")
                 if failure_point == K:
                     failure_point = k
+
         W_sa = np.sum(W_sas, axis=2)
         index_matrix = W_sa[:, :, 1] / (W_sa[:, :, 0] + W_sa[:, :, 1])
+        index_pre_nan = index_matrix
         index_matrix = np.nan_to_num(index_matrix, nan=0.0)
 
         # Evaluate the policy
@@ -134,6 +139,7 @@ def train(env, cfg):
                         / (2 * Z_sa[arm_id, s, a])
                     )
                     confidence_P.append(delta[arm_id, s, a])
+
                     P_hat[arm_id, s, s_dash, a] = Z_sas[
                         arm_id, s, s_dash, a
                     ] / np.maximum(1, Z_sa[arm_id, s, a])
@@ -205,7 +211,7 @@ def train(env, cfg):
         "opt_curve": opt_curve,
     }
     loss = {"index_error": index_error, "F_error": F_error, "P_error": P_error}
-    # breakpoint()
+    breakpoint()
     return performance, loss, failure_point
 
 

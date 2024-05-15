@@ -23,7 +23,11 @@ def main():
 def initialize_arm1(n_states, n_actions):
     # Transition matrices for arm 1
     P = np.zeros((n_states, n_states, n_actions))
-    P[:, :, 0] = [[0.0385, 0, 0.9615], [0, 0, 1], [0.0257, 0.0245, 0.9498]]  # Action 0
+    P[:, :, 0] = [
+        [0.0385, 0, 0.9615],
+        [0.1, 0.1, 0.8],
+        [0.0257, 0.0245, 0.9498],
+    ]  # Action 0
     P[:, :, 1] = [[0, 0, 1], [0, 0, 1], [0, 0, 1]]  # Action 1
 
     # Reward matrix for arm 1

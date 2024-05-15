@@ -22,12 +22,12 @@ def non_plling_arm():
     n_actions = 2
     P = np.zeros((n_states, n_states, n_actions))
     P[:, :, 0] = [
-        [0, 1],
-        [0, 1],
+        [0.05, 0.95],
+        [0.05, 0.95],
     ]  # Action 0
     P[:, :, 1] = [
-        [1, 0],
-        [1, 0],
+        [0.95, 0.05],
+        [0.95, 0.05],
     ]  # Action 0
 
     # Reward matrix for arm 1
@@ -47,12 +47,12 @@ def pulling_arm():
     n_actions = 2
     P = np.zeros((n_states, n_states, n_actions))
     P[:, :, 0] = [
-        [1, 0],
-        [1, 0],
+        [0.95, 0.05],
+        [0.95, 0.05],
     ]  # Action 0
     P[:, :, 1] = [
-        [0, 1],
-        [0, 1],
+        [0.05, 0.95],
+        [0.05, 0.95],
     ]  # Action 0
 
     # Reward matrix for arm 1

@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import hydra
 import os
+import pandas as pd
 
 
 def plot_training_performance(performances, opt_cost, failure_point, exp_name):
@@ -95,6 +96,14 @@ def plot_training_performance(performances, opt_cost, failure_point, exp_name):
     # Save the regret plot (traj based) to Hydra's output directory
     plt.savefig(os.path.join(output_dir, "regret.png"))
     plt.clf()
+    # Save performances
+    info_df = pd.DataFrame(performances)
+    info_df.to_csv(os.path.join(output_dir, "performance_info.csv"))
+    # Save optimal_cost and failure_point
+    with open(os.path.join(output_dir, "opt_cost.txt"), "w") as f:
+        f.write(str(opt_cost))
+    with open(os.path.join(output_dir, "failure_point.txt"), "w") as f:
+        f.write(str(failure_point))
 
 
 def plot_reconstruction_loss(losses, exp_name):

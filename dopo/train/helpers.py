@@ -34,6 +34,10 @@ def get_opt_performance(env):
     index_matrix_true = opt_occupancy[:, :, 1] / (
         opt_occupancy[:, :, 0] + opt_occupancy[:, :, 1]
     )
+    opt_index = np.nan_to_num(index_matrix_true, nan=0.0)
+    env.opt_index = opt_index
+    env.opt_index_pre_nan = index_matrix_true
+    env.opt_occupancy = opt_occupancy
     return optimal_cost * env.T, index_matrix_true
 
 
