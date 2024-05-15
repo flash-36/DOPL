@@ -24,11 +24,11 @@ def initialize_arm1(n_states, n_actions):
     # Transition matrices for arm 1
     P = np.zeros((n_states, n_states, n_actions))
     P[:, :, 0] = [
-        [0.0385, 0, 0.9615],
+        [0.1385, 0.1, 0.7615],
         [0.1, 0.1, 0.8],
-        [0.0257, 0.0245, 0.9498],
+        [0.1257, 0.1245, 0.7498],
     ]  # Action 0
-    P[:, :, 1] = [[0, 0, 1], [0, 0, 1], [0, 0, 1]]  # Action 1
+    P[:, :, 1] = [[0.1, 0.1, 0.8], [0.1, 0.1, 0.8], [0.1, 0.1, 0.8]]  # Action 1
 
     # Reward matrix for arm 1
     R = np.zeros((n_states, n_actions))
@@ -48,8 +48,8 @@ def initialize_arm2(n_states, n_actions):
     ]
     P[:, :, 1] = [
         [0.1427, 0.3741, 0.4832],  # Action 1
-        [0.1399, 0, 0.8601],
-        [0.0323, 0, 0.9677],
+        [0.1399, 0.1, 0.7601],
+        [0.1323, 0.1, 0.7677],
     ]
 
     # Reward matrix for arm 2

@@ -14,12 +14,12 @@ class Wireless_Scheduling:
         self.num_actions = num_actions
         self.R = np.zeros((num_states,num_actions))
         self.P = np.zeros((num_states,num_states,num_actions))
-        self.flip_good = 0.2
-        self.flip_bad = 0.5
-        self.big_transition_good = 0.7
-        self.small_transition_good = 0.3
-        self.small_transition_bad = 0.7
-        self.big_transition_bad = 0.3
+        self.flip_good = np.random.random()
+        self.flip_bad = np.random.random()
+        self.big_transition_good = 0.8
+        self.small_transition_good = 0.2
+        self.small_transition_bad = 0.8
+        self.big_transition_bad = 0.2
 
 
     def populate_reward(self):
@@ -121,7 +121,7 @@ def save_matrices(P, R, arm_type):
 
 
 def main():
-    ws = Wireless_Scheduling(2, 100, 200, 2)
+    ws = Wireless_Scheduling(2, 3, 6, 2)
     ws.populate_reward()
     ws.populate_transition_matrix()
     for action in range(ws.num_actions):
