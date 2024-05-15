@@ -113,13 +113,13 @@ def compute_ELP_pyomo(delta, P_hat, budget, n_state, n_action, Reward, n_arms):
                 for a in model.A:
                     for s_dash in model.S_dash:
                         index_policy[n, s, s_dash, a] = model.w[n, s, a, s_dash].value
-        return index_policy
+        return index_policy, value(model.obj)
     elif result.solver.termination_condition == TerminationCondition.infeasible:
         # print("No feasible solution found!")
-        return None
+        return None, None
     else:
         # print("Solver Status:", result.solver.status)
-        return None
+        return None, None
 
 
 def compute_optimal_pyomo(Reward, budget, P, n_arms, n_state, n_action):

@@ -6,9 +6,14 @@ from dopo.envs import MultiArmRestlessDuellingEnv
 from dopo.utils import load_arm
 from dopo.train import train, assisted_train
 from dopo.train import get_opt_performance
-from dopo.plot import plot_training_performance, plot_reconstruction_loss
+from dopo.plot import (
+    plot_training_performance,
+    plot_reconstruction_loss,
+    plot_meta_data,
+)
 import logging
 import random
+from collections import defaultdict
 
 log = logging.getLogger(__name__)
 
@@ -42,27 +47,31 @@ def main(cfg: DictConfig):
 
     # Initialize the duelling environment
     env = MultiArmRestlessDuellingEnv(arm_constraint, P_list, R_list)
-    env.T = cfg.T
+    env.H = cfg.H
 
     # Get optimal performance and index matrix
-    opt_cost, opt_index = get_opt_performance(env)
+    opt_cost = get_opt_performance(env)
 
     # Perform training and evaluation using parameters
-    performances = []
-    losses = []
+    performances = {}
+    losses = {}
     failure_points = []
+    metas = {}
     for seeds in range(cfg.num_seeds):
         print("*" * 40, f"Training Seed {seeds+1}", "*" * 40)
-        performance, loss, failure_point = train(env, cfg)
-        # performance, loss, failure_point = assisted_train(env, cfg)
-        performances.append(performance)
-        losses.append(loss)
+        performance, loss, meta, failure_point = train(env, cfg)
+        performances[seeds] = performance
+        losses[seeds] = loss
+        metas[seeds] = meta
         failure_points.append(failure_point)
 
     # Plot the training performance
     plot_training_performance(
         performances, opt_cost, min(failure_points), cfg["exp"]["name"]
     )
+    # Plot the meta data
+    plot_meta_data(metas, cfg["exp"]["name"])
+    # Plot the reconstruction loss
     plot_reconstruction_loss(losses, cfg["exp"]["name"])
 
 

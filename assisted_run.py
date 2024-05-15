@@ -42,7 +42,7 @@ def main(cfg: DictConfig):
 
     # Initialize the duelling environment
     env = MultiArmRestlessDuellingEnv(arm_constraint, P_list, R_list)
-    env.T = cfg.T
+    env.H = cfg.T
 
     # Get optimal performance and index matrix
     opt_cost, opt_index = get_opt_performance(env)

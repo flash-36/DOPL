@@ -117,7 +117,7 @@ def assisted_train(env, cfg):
         # Update F_tilde according to alg 2
         for h in range(H):
             s_list = env.reset()
-            for t in range(env.T):
+            for t in range(env.H):
                 action = apply_index_policy(s_list, index_matrix, env.arm_constraint)
                 s_dash_list, reward, _, _, info = env.step(action)
                 for arm_id, s, a, s_dash in zip(
@@ -133,7 +133,7 @@ def assisted_train(env, cfg):
                             * num_arms
                             * (k + 1)
                             * H
-                            * env.T
+                            * env.H
                             / (delta_coeff)
                         )
                         / (2 * Z_sa[arm_id, s, a])
@@ -170,7 +170,7 @@ def assisted_train(env, cfg):
                         winner, s_list[winner], loser, s_list[loser]
                     ] + np.sqrt(
                         np.log(
-                            4 * num_states * num_arms * (k + 1) * H * env.T / conf_coeff
+                            4 * num_states * num_arms * (k + 1) * H * env.H / conf_coeff
                         )
                         / (2 * battle_count)
                     )
@@ -180,7 +180,7 @@ def assisted_train(env, cfg):
                         loser, s_list[loser], winner, s_list[winner]
                     ] + np.sqrt(
                         np.log(
-                            4 * num_states * num_arms * (k + 1) * H * env.T / conf_coeff
+                            4 * num_states * num_arms * (k + 1) * H * env.H / conf_coeff
                         )
                         / (2 * battle_count)
                     )
@@ -192,7 +192,7 @@ def assisted_train(env, cfg):
                                 * num_arms
                                 * (k + 1)
                                 * H
-                                * env.T
+                                * env.H
                                 / conf_coeff
                             )
                             / (2 * battle_count)
@@ -221,7 +221,7 @@ def eval(num_episodes, env, index_matrix):
     for ep_num in range(num_episodes):
         s_list = env.reset()
         episode_reward = 0
-        for t in range(env.T):
+        for t in range(env.H):
             action = apply_index_policy(s_list, index_matrix, env.arm_constraint)
             s_dash_list, reward, _, _, _ = env.step(action)
             episode_reward += reward
