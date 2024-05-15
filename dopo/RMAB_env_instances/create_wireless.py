@@ -3,7 +3,7 @@ import numpy as np
 
 def generate_wireless_matrices(max_data, num_channels):
     """
-    Generate a random transition (P) and reward (R) matrix.
+    Generate transition (P) and reward (R) matrix.
     """
     # Initialize the transition matrix P (shape: num_states x num_states x num_actions)
     num_actions = 2
@@ -22,6 +22,8 @@ def generate_wireless_matrices(max_data, num_channels):
     for state in possible_states:
         data_level, channel_quality = state
         R[possible_states.index(state)] = -data_level
+        if data_level == 0:
+            R[possible_states.index(state)] = 4 * max_data
     # Reward is same for both actions
     R = np.tile(R[:, np.newaxis], (1, num_actions))
     # Normalize R to be between 0 and 1

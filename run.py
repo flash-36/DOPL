@@ -14,6 +14,10 @@ from dopo.plot import (
 import logging
 import random
 from collections import defaultdict
+import warnings
+import wandb
+
+warnings.filterwarnings("ignore")
 
 log = logging.getLogger(__name__)
 
@@ -59,11 +63,17 @@ def main(cfg: DictConfig):
     metas = {}
     for seeds in range(cfg.num_seeds):
         print("*" * 40, f"Training Seed {seeds+1}", "*" * 40)
+        wandb.init(project="dopo", name=f"{cfg.exp.name}_seed_{seeds+1}")
         performance, loss, meta, failure_point = train(env, cfg)
         performances[seeds] = performance
         losses[seeds] = loss
         metas[seeds] = meta
         failure_points.append(failure_point)
+        wandb.log(
+            {"performance": performance, "loss": loss, "failure_point": failure_point}
+        )
+
+        wandb.finish()
 
     # Plot the training performance
     plot_training_performance(

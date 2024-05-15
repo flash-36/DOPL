@@ -38,6 +38,7 @@ def get_opt_performance(env):
     env.opt_index = opt_index
     env.opt_index_pre_nan = index_matrix_true
     env.opt_occupancy = opt_occupancy
+    env.opt_cost = optimal_cost
     return optimal_cost * env.H
 
 

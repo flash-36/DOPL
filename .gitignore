@@ -400,3 +400,6 @@ FodyWeavers.xsd
 # Hydra outputs
 outputs/
 multirun/
+
+# Weights & Biases
+wandb/

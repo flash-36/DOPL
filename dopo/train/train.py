@@ -3,6 +3,7 @@ from tqdm import tqdm
 from dopo.utils import compute_ELP, compute_ELP_pyomo
 from dopo.train.helpers import apply_index_policy, compute_F_true
 import logging
+import wandb
 
 log = logging.getLogger(__name__)
 # delta_scheduler = [0.5] * 2000 + [0.2] * 2000 + [0.1] * 20000 + [0.05] * 20000
@@ -67,6 +68,7 @@ def train(env, cfg):
 
     # Start training
     failure_point = K
+
     for k in tqdm(range(K)):
         # ref_arm, ref_state = pick_random_ref(W)
         ref_arm, ref_state = pick_best_ref(W)
@@ -84,13 +86,14 @@ def train(env, cfg):
             Q_n_s,
             num_arms,
         )
-        print(f"Optimal cost: {elp_opt_cost}________________________________")
+        print(f"Optimal cost: {env.opt_cost}________________________________")
+        print(f"ELP cost: {elp_opt_cost}________________________________")
         if solution is not None:
             W_sas = solution
+        else:
             elp_opt_cost = (
                 elp_cost_tracker[-1] if len(elp_cost_tracker) > 0 else elp_opt_cost
             )
-        else:
             if k == 0:
                 print("No feasible solution in first iteration!")
                 SystemExit()
@@ -184,7 +187,9 @@ def train(env, cfg):
                         / (2 * battle_count)
                     )
                 )
-                F_tilde = np.clip(F_tilde, 0.2689, 0.7311)
+                F_tilde = np.clip(
+                    F_tilde, 0.2689, 0.7311
+                )  # Since reward bounded between 0 and 1
                 ########################################
                 # F_tilde = np.clip(
                 #     F_tilde, 1e-6, 1 - 1e-6
@@ -193,6 +198,21 @@ def train(env, cfg):
         delta_tracker_P.append(min(episode_delta_tracker_P))
         delta_tracker_F.append(min(episode_delta_tracker_F))
 
+        wandb.log(
+            {
+                "train_curve": train_curve[-1],
+                "rand_curve": rand_curve[-1],
+                "opt_curve": opt_curve[-1],
+                "index_error": index_error[-1],
+                "F_error": F_error[-1],
+                "P_error": P_error[-1],
+                "Q_error": Q_error[-1],
+                "delta_tracker_P": delta_tracker_P[-1],
+                "delta_tracker_F": delta_tracker_F[-1],
+                "elp_cost_tracker": elp_cost_tracker[-1],
+            }
+        )
+        # breakpoint()
     performance = {
         "train_curve": train_curve,
         "rand_curve": rand_curve,
