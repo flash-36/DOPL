@@ -217,3 +217,6 @@ def compute_optimal(Reward, budget, P, n_arms, n_state, n_action):
 
     opt_value = p.value(opt_prob.objective)
     return opt_value, optimal_policy
+
+def set_seed(seed):
+    np.random.seed(seed)

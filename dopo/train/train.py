@@ -4,6 +4,7 @@ from dopo.utils import compute_ELP, compute_ELP_pyomo
 from dopo.train.helpers import apply_index_policy, compute_F_true
 import logging
 import wandb
+from dopo.utils import set_seed
 
 log = logging.getLogger(__name__)
 # delta_scheduler = [0.5] * 2000 + [0.2] * 2000 + [0.1] * 20000 + [0.05] * 20000
@@ -26,9 +27,10 @@ def pick_random_ref(W):
     return ref_arm, ref_state
 
 
-def train(env, cfg):
+def train(env, cfg, seeds):
     FirstTimeWarning = True
     # Extract training parameters
+    set_seed(seeds)
     K = cfg["K"]
     delta_coeff = cfg["delta_coeff"]
     conf_coeff = cfg["conf_coeff"]

@@ -16,6 +16,7 @@ import random
 from collections import defaultdict
 import warnings
 import wandb
+from dopo.utils import set_seed
 
 warnings.filterwarnings("ignore")
 
@@ -40,6 +41,7 @@ def main(cfg: DictConfig):
         R_list.extend([R] * num_arms_per_type)
     # Shffle ordering of arms so as to not have biases
     indices = list(range(len(P_list)))
+    random.seed(cfg.num_seeds)
     random.shuffle(indices)
     P_list = [P_list[i] for i in indices]
     R_list = [R_list[i] for i in indices]
@@ -62,9 +64,10 @@ def main(cfg: DictConfig):
     failure_points = []
     metas = {}
     for seeds in range(cfg.num_seeds):
+        set_seed(seeds)
         print("*" * 40, f"Training Seed {seeds+1}", "*" * 40)
         wandb.init(project="dopo", name=f"{cfg.exp.name}_seed_{seeds+1}")
-        performance, loss, meta, failure_point = train(env, cfg)
+        performance, loss, meta, failure_point = train(env, cfg, seeds)
         performances[seeds] = performance
         losses[seeds] = loss
         metas[seeds] = meta
