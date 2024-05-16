@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from dopo.envs import MultiArmRestlessDuellingEnv
 from dopo.utils import load_arm
-from dopo.train import train, assisted_train
+from dopo.train import train
 from dopo.train import get_opt_performance
 from dopo.plot import (
     plot_training_performance,

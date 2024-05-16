@@ -45,8 +45,10 @@ def train(env, cfg, seeds):
     Z_sa = np.zeros((num_arms, num_states, num_actions))
     Z_sas = np.zeros((num_arms, num_states, num_states, num_actions))
 
-    F_tilde = np.ones((num_arms, num_states, num_arms, num_states)) * 0.7311
-    F_hat = np.ones((num_arms, num_states, num_arms, num_states)) * 0.7311
+    # F_tilde = np.ones((num_arms, num_states, num_arms, num_states)) * 0.7311
+    # F_hat = np.ones((num_arms, num_states, num_arms, num_states)) * 0.7311
+    F_tilde = np.ones((num_arms, num_states, num_arms, num_states)) * (1 - 1e-6)
+    F_hat = np.ones((num_arms, num_states, num_arms, num_states)) * (1 - 1e-6)
     delta = np.ones((num_arms, num_states, num_actions))
 
     # Performance trackers
@@ -206,13 +208,11 @@ def train(env, cfg, seeds):
                         / (2 * battle_count)
                     )
                 )
-                F_tilde = np.clip(
-                    F_tilde, 0.2689, 0.7311
-                )  # Since reward bounded between 0 and 1
-                ########################################
                 # F_tilde = np.clip(
-                #     F_tilde, 1e-6, 1 - 1e-6
-                # )  # For numerical stability
+                #     F_tilde, 0.2689, 0.7311
+                # )  # Since reward bounded between 0 and 1
+                ########################################
+                F_tilde = np.clip(F_tilde, 1e-6, 1 - 1e-6)  # For numerical stability
             s_list = s_dash_list
         delta_tracker_P.append(min(episode_delta_tracker_P))
         delta_tracker_F.append(min(episode_delta_tracker_F))
@@ -231,6 +231,7 @@ def train(env, cfg, seeds):
                 "elp_cost_tracker": elp_cost_tracker[-1],
                 "elp_cost_true": elp_opt_cost_true,
                 "elp_cost_truly_true": elp_opt_cost_truly_true,
+                "failure_point": failure_point,
             }
         )
         # breakpoint()
