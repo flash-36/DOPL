@@ -1,6 +1,6 @@
 import numpy as np
 from tqdm import tqdm
-from dopo.utils import compute_ELP, compute_ELP_pyomo
+from dopo.utils import compute_ELP, compute_ELP_pyomo, compute_optimal_pyomo
 from dopo.train.helpers import apply_index_policy, compute_F_true
 import logging
 import wandb
@@ -88,7 +88,24 @@ def train(env, cfg, seeds):
             Q_n_s,
             num_arms,
         )
-        print(f"Optimal cost: {env.opt_cost}________________________________")
+        _, elp_opt_cost_true = compute_ELP_pyomo(
+            delta,
+            P_hat,
+            env.arm_constraint,
+            num_states,
+            num_actions,
+            Q_true,
+            num_arms,
+        )
+        elp_opt_cost_truly_true, _ = compute_optimal_pyomo(
+            Q_true,
+            env.arm_constraint,
+            P_true,
+            num_arms,
+            num_states,
+            num_actions,
+        )
+        print(f"ELP cost true: {elp_opt_cost_true}________________________________")
         print(f"ELP cost: {elp_opt_cost}________________________________")
         if solution is not None:
             W_sas = solution
@@ -212,6 +229,8 @@ def train(env, cfg, seeds):
                 "delta_tracker_P": delta_tracker_P[-1],
                 "delta_tracker_F": delta_tracker_F[-1],
                 "elp_cost_tracker": elp_cost_tracker[-1],
+                "elp_cost_true": elp_opt_cost_true,
+                "elp_cost_truly_true": elp_opt_cost_truly_true,
             }
         )
         # breakpoint()
