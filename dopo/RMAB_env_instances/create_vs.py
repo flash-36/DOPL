@@ -52,7 +52,7 @@ def initialize_arm1(n_states, n_actions):
         if state_index == 0:
             R[state_index, :] = 0
         else:
-            R[state_index, :] = 1 / (state_index + 1) ** 2
+            R[state_index, :] = 1 / (state_index + 1)
     print(P)
     print(R)
     return P, R

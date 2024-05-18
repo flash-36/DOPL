@@ -27,7 +27,7 @@ def generate_wireless_matrices(max_data, num_channels):
     # Reward is same for both actions
     R = np.tile(R[:, np.newaxis], (1, num_actions))
     # Normalize R to be between 0 and 1
-    R = (R - np.min(R)) * 10 / (np.max(R) - np.min(R))
+    R = (R - np.min(R)) / (np.max(R) - np.min(R))
 
     # Compute P
     for action in range(num_actions):

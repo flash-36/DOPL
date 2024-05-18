@@ -36,7 +36,7 @@ def non_plling_arm():
         if state_index == 0:
             R[state_index, :] = 0
         else:
-            R[state_index, :] = 10
+            R[state_index, :] = 1
     print(P)
     print(R)
     return P, R
@@ -61,7 +61,7 @@ def pulling_arm():
         if state_index == 0:
             R[state_index, :] = 0
         else:
-            R[state_index, :] = 10
+            R[state_index, :] = 1
     print(P)
     print(R)
     return P, R

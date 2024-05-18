@@ -18,11 +18,11 @@ class RestlessArmEnv(gym.Env):
     def step(self, action):
         action = int(action)
         assert self.action_space.contains(action)
-        # reward = self.R[self.current_state][action]
+        reward = self.R[self.current_state][action]
         self.current_state = np.random.choice(
             self.n_states, p=self.P[self.current_state, :, action]
         )
-        reward = self.R[self.current_state][action]
+        # reward = self.R[self.current_state][action]
         ter = tru = False  # Bandit environments typically do not have a terminal state
         return self.current_state, reward, ter, tru, {}
 

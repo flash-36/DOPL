@@ -32,7 +32,7 @@ def plot_training_performance(performances, opt_cost, failure_point, exp_name):
     std_opt = np.std(opt_curves_list, axis=0)
 
     # smooth the curves with windowed moving avg
-    window_size = 100
+    window_size = 10
     mean_curve = np.convolve(mean_curve, np.ones(window_size), "valid") / window_size
     std_curve = np.convolve(std_curve, np.ones(window_size), "valid") / window_size
     mean_rand = np.convolve(mean_rand, np.ones(window_size), "valid") / window_size
@@ -91,7 +91,7 @@ def plot_training_performance(performances, opt_cost, failure_point, exp_name):
     std_cum_regret_rand = np.std(cum_regret_rand, axis=0)
 
     # smooth the curves with windowed moving avg
-    window_size = 100
+    window_size = 10
     mean_regret_dopo = (
         np.convolve(mean_regret_dopo, np.ones(window_size), "valid") / window_size
     )
@@ -202,7 +202,7 @@ def plot_reconstruction_loss(losses, exp_name):
     std_Q_error = np.std(Q_errors, axis=0)
 
     # Smooth the curves with windowed moving avg
-    window_size = 100
+    window_size = 10
     mean_index_error = (
         np.convolve(mean_index_error, np.ones(window_size), "valid") / window_size
     )
