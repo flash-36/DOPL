@@ -27,88 +27,57 @@ def pick_random_ref(W):
     return ref_arm, ref_state
 
 
-def enrich_F(W, F_tilde, F_hat, conf_coeff, k, H):
-    num_arms = W.shape[0]
-    num_states = W.shape[1]
-    for arm_j1 in range(num_arms):
-        for state_j1 in range(num_states):
-            for arm_j2 in range(num_arms):
-                for state_j2 in range(num_states):
-                    battle_count_j1_j2 = (
-                        W[arm_j1, state_j1, arm_j2, state_j2]
-                        + W[arm_j2, state_j2, arm_j1, state_j1]
-                    )
-                    arm_i_best = -1
-                    state_i_best = -1
-                    battle_count_best = 0
-                    for arm_i in range(num_arms):
-                        for state_i in range(num_states):
-                            if (arm_i, state_i) != (arm_j1, state_j1) and (
-                                arm_i,
-                                state_i,
-                            ) != (arm_j2, state_j2):
-                                battle_count_i_j1 = (
-                                    W[arm_i, state_i, arm_j1, state_j1]
-                                    + W[arm_j1, state_j1, arm_i, state_i]
-                                )
-                                battle_count_i_j2 = (
-                                    W[arm_i, state_i, arm_j2, state_j2]
-                                    + W[arm_j2, state_j2, arm_i, state_i]
-                                )
-                                if (
-                                    battle_count_i_j1 + battle_count_i_j2
-                                    > battle_count_best
-                                ):
-                                    arm_i_best = arm_i
-                                    state_i_best = state_i
-                                    battle_count_best = (
-                                        battle_count_i_j1 + battle_count_i_j2
-                                    )
-                    arm_i = arm_i_best
-                    state_i = state_i_best
-                    battle_count_i_j1 = (
-                        W[arm_i, state_i, arm_j1, state_j1]
-                        + W[arm_j1, state_j1, arm_i, state_i]
-                    )
-                    battle_count_i_j2 = (
-                        W[arm_i, state_i, arm_j2, state_j2]
-                        + W[arm_j2, state_j2, arm_i, state_i]
-                    )
+def enrich_F(F_tilde, F_hat, reference, conf):
+    ref_arm, ref_state = reference
+    num_arms = F_hat.shape[0]
+    num_states = F_hat.shape[1]
+    # Use lemma 4 from paper; j1 = ref_arm, ref_state; j2 = arm, state
+    print(
+        f"Attempting to enrich F_tilde for {ref_arm, ref_state}******************************************"
+    )
+    # Pick best i
+    best_arm_i, best_state_i = -1, -1
+    best_conf_i = np.inf
+    for arm_i in range(num_arms):
+        for state_i in range(num_states):
+            if conf[ref_arm, ref_state, arm_i, state_i] < best_conf_i:
+                best_arm_i, best_state_i = arm_i, state_i
+                best_conf_i = conf[ref_arm, ref_state, arm_i, state_i]
+    # Use best i to enrich F
+    for arm in range(num_arms):
+        for state in range(num_states):
+            conf_inferred = (
+                best_conf_i + conf[arm, state, best_arm_i, best_state_i]
+            ) * 1.3
+            if conf_inferred < conf[ref_arm, ref_state, arm, state]:
 
-                    if (
-                        battle_count_j1_j2 <= min(battle_count_i_j1, battle_count_i_j2)
-                        and min(battle_count_i_j1, battle_count_i_j2) > 0
-                    ):
-                        term = (
-                            F_hat[arm_j1, state_j1, arm_i, state_i]
-                            * F_hat[arm_i, state_i, arm_j2, state_j2]
-                            / (
-                                F_hat[arm_j1, state_j1, arm_i, state_i]
-                                * F_hat[arm_i, state_i, arm_j2, state_j2]
-                                + F_hat[arm_j2, state_j2, arm_i, state_i]
-                                * F_hat[arm_i, state_i, arm_j1, state_j1]
-                            )
-                        )
-                        # Check f term is not nan
-                        if not np.isnan(term):
-                            F_hat[arm_j1, state_j1, arm_j2, state_j2] = term
-                            F_hat[arm_j2, state_j2, arm_j1, state_j1] = (
-                                1 - F_hat[arm_j1, state_j1, arm_j2, state_j2]
-                            )
-                            confidence_term = np.sqrt(
-                                np.log(
-                                    4 * num_states * num_arms * (k + 1) * H / conf_coeff
-                                )
-                                / (2 * min(battle_count_i_j1, battle_count_i_j2))
-                            )
-                            F_tilde[arm_j1, state_j1, arm_j2, state_j2] = (
-                                F_hat[arm_j1, state_j1, arm_j2, state_j2]
-                                + confidence_term
-                            )
-                            F_tilde[arm_j2, state_j2, arm_j1, state_j1] = (
-                                F_hat[arm_j2, state_j2, arm_j1, state_j1]
-                                + confidence_term
-                            )
+                F_hat[ref_arm, ref_state, arm, state] = (
+                    F_hat[ref_arm, ref_state, best_arm_i, best_state_i]
+                    * F_hat[best_arm_i, best_state_i, arm, state]
+                ) / (
+                    F_hat[ref_arm, ref_state, best_arm_i, best_state_i]
+                    * F_hat[best_arm_i, best_state_i, arm, state]
+                    + F_hat[arm, state, best_arm_i, best_state_i]
+                    * F_hat[best_arm_i, best_state_i, ref_arm, ref_state]
+                )
+                F_hat[arm, state, ref_arm, ref_state] = (
+                    1 - F_hat[ref_arm, ref_state, arm, state]
+                )
+                conf[arm, state, ref_arm, ref_state] = conf[
+                    ref_arm, ref_state, arm, state
+                ] = conf_inferred
+                F_tilde[arm, state, ref_arm, ref_state] = (
+                    F_hat[arm, state, ref_arm, ref_state] + conf_inferred
+                )
+                F_tilde[ref_arm, ref_state, arm, state] = (
+                    F_hat[ref_arm, ref_state, arm, state] + conf_inferred
+                )
+                print(
+                    f"Enriched F_tilde for {arm, state, ref_arm, ref_state}******************************************"
+                )
+                wandb.log({"successful_enrichment": 1})
+            else:
+                wandb.log({"successful_enrichment": 0})
 
     return F_tilde, F_hat
 
@@ -139,15 +108,13 @@ def train(env, cfg, seeds):
     Z_sas = np.zeros((num_arms, num_states, num_states, num_actions))
 
     if cfg.reward_normalized:
-        F_hat = np.ones((num_arms, num_states, num_arms, num_states)) * (
-            np.e / (np.e + 1)
-        )
         F_tilde = np.ones((num_arms, num_states, num_arms, num_states)) * (
             np.e / (np.e + 1)
         )
     else:
-        F_hat = np.ones((num_arms, num_states, num_arms, num_states)) * (1 - 1e-6)
         F_tilde = np.ones((num_arms, num_states, num_arms, num_states)) * (1 - 1e-6)
+
+    F_hat = np.ones((num_arms, num_states, num_arms, num_states)) * 0.5
 
     delta = np.ones((num_arms, num_states, num_actions))
     if cfg.assisted_P:
@@ -190,10 +157,21 @@ def train(env, cfg, seeds):
             ref_arm, ref_state = 0, 0
         # Compute the corresponding index policy
         if cfg.enrich_F:
-            # Use lemma in paper to estimte more F_tilde values
-            F_tilde, F_hat = enrich_F(W, F_tilde, F_hat, conf_coeff, k, env.H)
-        Q_n_s = -np.log(F_tilde[ref_arm][ref_state] / (1 - F_tilde[ref_arm][ref_state]))
-        Q_true = -np.log(F_true[ref_arm][ref_state] / (1 - F_true[ref_arm][ref_state]))
+            # Use lemma in paper to estimte better F_tilde values
+            F_tilde, F_hat = enrich_F(F_tilde, F_hat, (ref_arm, ref_state), conf)
+            # Clip F_tilde and F_hat according to reward normalization
+            if cfg.reward_normalized:
+                F_tilde = np.clip(F_tilde, 1 / (np.e + 1), np.e / (np.e + 1))
+                F_hat = np.clip(F_hat, 1 / (np.e + 1), np.e / (np.e + 1))
+            else:
+                F_tilde = np.clip(F_tilde, 1e-6, 1 - 1e-6)
+                F_hat = np.clip(F_hat, 1e-6, 1 - 1e-6)
+        Q_n_s = np.log(
+            F_tilde[:, :, ref_arm, ref_state] / (1 - F_tilde[:, :, ref_arm, ref_state])
+        )
+        Q_true = np.log(
+            F_true[:, :, ref_arm, ref_state] / (1 - F_true[:, :, ref_arm, ref_state])
+        )
         ##compute the policy
         solution, elp_opt_cost = compute_ELP_pyomo(
             delta,
@@ -352,6 +330,8 @@ def train(env, cfg, seeds):
                 "delta_mean": episode_delta_tracker_mean[-1],
                 "conf_min": episode_conf_tracker_min[-1],
                 "conf_mean": episode_conf_tracker_mean[-1],
+                "reference_arm": ref_arm,
+                "reference_state": ref_state,
             }
         )
         # breakpoint()
