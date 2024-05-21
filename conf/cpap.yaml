@@ -21,7 +21,7 @@ delta_coeff : ${eps}
 conf_coeff : ${eps}
 reference_strategy: "best" # or "random" or "fixed"
 enrich_F : True # Set this to true if you want to enrich F using lemma 4 in paper
-mle_method: "first_order" # or "second_order"
+mle_method: "second_order" # or "first_order"
 mle_cumulative: False
 
 
