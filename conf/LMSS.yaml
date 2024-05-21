@@ -1,0 +1,23 @@
+defaults:
+  - _self_
+
+exp:
+  name: "LMSS_env"
+
+num_seeds : 1
+reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
+assisted_P: False # Set this to true if you want to estimate only F and not P
+K : 30
+H : 5000
+delta_coeff : 1e-5
+conf_coeff : 1e-5
+reference_strategy: "best" # or "random" or "fixed"
+enrich_F : true # Set this to true if you want to enrich F using lemma 4 in paper
+
+
+
+env_config:
+  arm: "LMSS"
+  num_types: 4
+  num_arms_per_type: 5
+  arm_constraint: 5
