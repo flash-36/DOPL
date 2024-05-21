@@ -76,7 +76,7 @@ def generate_and_save_multiple_mdps(num_mdps, max_charge, max_deadline):
 # Example usage
 def main():
     num_mdps = 1
-    max_charge = 6
+    max_charge = 3
     max_deadline = 3
 
     generate_and_save_multiple_mdps(num_mdps, max_charge, max_deadline)
