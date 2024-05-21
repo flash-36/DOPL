@@ -153,6 +153,10 @@ def plot_training_performance(performances, opt_cost, failure_point, exp_name):
         np.convolve(mean_cum_regret_baseline, np.ones(window_size), "valid")
         / window_size
     )
+    std_cum_regret_baseline = (
+        np.convolve(std_cum_regret_baseline, np.ones(window_size), "valid")
+        / window_size
+    )
 
     # Plot regret
     plt.plot(mean_regret_dopo, label="DOPO Regret")

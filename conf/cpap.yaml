@@ -22,7 +22,7 @@ conf_coeff : ${eps}
 reference_strategy: "best" # or "random" or "fixed"
 enrich_F : True # Set this to true if you want to enrich F using lemma 4 in paper
 mle_method: "first_order" # or "second_order"
-mle_cummulatives: False
+mle_cumulative: False
 
 
 exp:
