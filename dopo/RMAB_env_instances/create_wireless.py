@@ -81,7 +81,7 @@ def generate_and_save_multiple_mdps(num_mdps, max_data, num_channels):
 # Example usage
 def main():
     num_mdps = 1
-    max_data = 6
+    max_data = 3
     num_channels = 3
 
     generate_and_save_multiple_mdps(num_mdps, max_data, num_channels)

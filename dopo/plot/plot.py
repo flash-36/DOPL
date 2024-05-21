@@ -7,18 +7,24 @@ import pandas as pd
 
 def plot_training_performance(performances, opt_cost, failure_point, exp_name):
     train_curves_list = []
+    baseline_curves_list = []
     rand_curves_list = []
     opt_curves_list = []
     regret_dopo_list = []
+    regret_baseline_list = []
     regret_rand_list = []
     for performance in performances.values():
         # Unpack reward curves
         train_curves_list.append(performance["train_curve"])
+        baseline_curves_list.append(performance["baseline_curve"])
         rand_curves_list.append(performance["rand_curve"])
         opt_curves_list.append(performance["opt_curve"])
         # Compute regret based on opt index policy
         regret_dopo_list.append(
             np.array(performance["opt_curve"]) - np.array(performance["train_curve"])
+        )
+        regret_baseline_list.append(
+            np.array(performance["opt_curve"]) - np.array(performance["baseline_curve"])
         )
         regret_rand_list.append(
             np.array(performance["opt_curve"]) - np.array(performance["rand_curve"])
@@ -30,6 +36,8 @@ def plot_training_performance(performances, opt_cost, failure_point, exp_name):
     std_curve = np.std(train_curves_list, axis=0)
     mean_opt = np.mean(opt_curves_list, axis=0)
     std_opt = np.std(opt_curves_list, axis=0)
+    mean_baseline = np.mean(baseline_curves_list, axis=0)
+    std_baseline = np.std(baseline_curves_list, axis=0)
 
     # smooth the curves with windowed moving avg
     window_size = 10
@@ -39,12 +47,26 @@ def plot_training_performance(performances, opt_cost, failure_point, exp_name):
     std_rand = np.convolve(std_rand, np.ones(window_size), "valid") / window_size
     mean_opt = np.convolve(mean_opt, np.ones(window_size), "valid") / window_size
     std_opt = np.convolve(std_opt, np.ones(window_size), "valid") / window_size
+    mean_baseline = (
+        np.convolve(mean_baseline, np.ones(window_size), "valid") / window_size
+    )
+    std_baseline = (
+        np.convolve(std_baseline, np.ones(window_size), "valid") / window_size
+    )
 
-    plt.plot(mean_curve, label="DOPO")
+    plt.plot(mean_curve, label="DOPL")
     plt.fill_between(
         range(len(mean_curve)),
         mean_curve - std_curve,
         mean_curve + std_curve,
+        alpha=0.3,
+    )
+    plt.plot(mean_baseline, color="orange", label="Rew_Est_Index_Baseline")
+    plt.fill_between(
+        range(len(mean_baseline)),
+        mean_baseline - std_baseline,
+        mean_baseline + std_baseline,
+        color="orange",
         alpha=0.3,
     )
     plt.plot(mean_rand, color="r", label="Random Baseline")
@@ -82,11 +104,16 @@ def plot_training_performance(performances, opt_cost, failure_point, exp_name):
     std_rand_regret = np.std(regret_rand_list, axis=0)
     mean_regret_dopo = np.mean(regret_dopo_list, axis=0)
     std_regret_dopo = np.std(regret_dopo_list, axis=0)
+    mean_regret_baseline = np.mean(regret_baseline_list, axis=0)
+    std_regret_baseline = np.std(regret_baseline_list, axis=0)
 
     cum_regret_dopo = np.cumsum(regret_dopo_list, axis=1)
     cum_regret_rand = np.cumsum(regret_rand_list, axis=1)
+    cum_regret_baseline = np.cumsum(regret_baseline_list, axis=1)
     mean_cum_regret_dopo = np.mean(cum_regret_dopo, axis=0)
     std_cum_regret_dopo = np.std(cum_regret_dopo, axis=0)
+    mean_cum_regret_baseline = np.mean(cum_regret_baseline, axis=0)
+    std_cum_regret_baseline = np.std(cum_regret_baseline, axis=0)
     mean_cum_regret_rand = np.mean(cum_regret_rand, axis=0)
     std_cum_regret_rand = np.std(cum_regret_rand, axis=0)
 
@@ -104,6 +131,12 @@ def plot_training_performance(performances, opt_cost, failure_point, exp_name):
     std_rand_regret = (
         np.convolve(std_rand_regret, np.ones(window_size), "valid") / window_size
     )
+    mean_regret_baseline = (
+        np.convolve(mean_regret_baseline, np.ones(window_size), "valid") / window_size
+    )
+    std_regret_baseline = (
+        np.convolve(std_regret_baseline, np.ones(window_size), "valid") / window_size
+    )
     mean_cum_regret_dopo = (
         np.convolve(mean_cum_regret_dopo, np.ones(window_size), "valid") / window_size
     )
@@ -116,6 +149,10 @@ def plot_training_performance(performances, opt_cost, failure_point, exp_name):
     std_cum_regret_rand = (
         np.convolve(std_cum_regret_rand, np.ones(window_size), "valid") / window_size
     )
+    mean_cum_regret_baseline = (
+        np.convolve(mean_cum_regret_baseline, np.ones(window_size), "valid")
+        / window_size
+    )
 
     # Plot regret
     plt.plot(mean_regret_dopo, label="DOPO Regret")
@@ -125,6 +162,17 @@ def plot_training_performance(performances, opt_cost, failure_point, exp_name):
         mean_regret_dopo + std_regret_dopo,
         alpha=0.3,
     )
+    plt.plot(
+        mean_regret_baseline, color="orange", label="Rew_Est_Index_Baseline Regret"
+    )
+    plt.fill_between(
+        range(len(mean_regret_baseline)),
+        mean_regret_baseline - std_regret_baseline,
+        mean_regret_baseline + std_regret_baseline,
+        color="orange",
+        alpha=0.3,
+    )
+
     plt.plot(mean_rand_regret, color="r", label="Random Baseline Regret")
     plt.fill_between(
         range(len(mean_rand_regret)),
@@ -150,6 +198,18 @@ def plot_training_performance(performances, opt_cost, failure_point, exp_name):
         mean_cum_regret_dopo + std_cum_regret_dopo,
         alpha=0.3,
     )
+    plt.plot(
+        mean_cum_regret_baseline,
+        color="orange",
+        label="Rew_Est_Index_Baseline Cumulative Regret",
+    )
+    plt.fill_between(
+        range(len(mean_cum_regret_baseline)),
+        mean_cum_regret_baseline - std_cum_regret_baseline,
+        mean_cum_regret_baseline + std_cum_regret_baseline,
+        color="orange",
+        alpha=0.3,
+    )
     plt.plot(mean_cum_regret_rand, color="r", label="Random Baseline Cumulative Regret")
     plt.fill_between(
         range(len(mean_cum_regret_rand)),
@@ -158,6 +218,7 @@ def plot_training_performance(performances, opt_cost, failure_point, exp_name):
         color="red",
         alpha=0.3,
     )
+    plt.plot
     plt.legend()
     plt.title(f"Cumulative Regret - {exp_name}")
     plt.xlabel("Iterations")
@@ -169,6 +230,7 @@ def plot_training_performance(performances, opt_cost, failure_point, exp_name):
 
     # Save performances
     for key, performance in performances.items():
+        performance["opt_cost"] = [opt_cost] * len(performance["opt_curve"])
         info_df = pd.DataFrame.from_dict(
             performance,
         )
@@ -182,32 +244,48 @@ def plot_training_performance(performances, opt_cost, failure_point, exp_name):
 
 
 def plot_reconstruction_loss(losses, exp_name):
-    index_errors = []
+    index_error_dopls = []
+    index_error_baselines = []
     F_errors = []
     P_errors = []
+    P_errors_baseline = []
     Q_errors = []
     for loss in losses.values():
-        index_errors.append(loss["index_error"])
+        index_error_dopls.append(loss["index_error_dopl"])
+        index_error_baselines.append(loss["index_error_baseline"])
         F_errors.append(loss["F_error"])
-        P_errors.append(loss["P_error"])
+        P_errors.append(loss["P_error_dopl"])
+        P_errors_baseline.append(loss["P_error_baseline"])
         Q_errors.append(loss["Q_error"])
 
-    mean_index_error = np.mean(index_errors, axis=0)
-    std_index_error = np.std(index_errors, axis=0)
+    mean_index_error_dopl = np.mean(index_error_dopls, axis=0)
+    std_index_error_dopl = np.std(index_error_dopls, axis=0)
+    mean_index_error_baseline = np.mean(index_error_baselines, axis=0)
+    std_index_error_baseline = np.std(index_error_baselines, axis=0)
     mean_F_error = np.mean(F_errors, axis=0)
     std_F_error = np.std(F_errors, axis=0)
     mean_P_error = np.mean(P_errors, axis=0)
     std_P_error = np.std(P_errors, axis=0)
+    mean_P_error_baseline = np.mean(P_errors_baseline, axis=0)
+    std_P_error_baseline = np.std(P_errors_baseline, axis=0)
     mean_Q_error = np.mean(Q_errors, axis=0)
     std_Q_error = np.std(Q_errors, axis=0)
 
     # Smooth the curves with windowed moving avg
     window_size = 10
-    mean_index_error = (
-        np.convolve(mean_index_error, np.ones(window_size), "valid") / window_size
+    mean_index_error_dopl = (
+        np.convolve(mean_index_error_dopl, np.ones(window_size), "valid") / window_size
     )
-    std_index_error = (
-        np.convolve(std_index_error, np.ones(window_size), "valid") / window_size
+    std_index_error_dopl = (
+        np.convolve(std_index_error_dopl, np.ones(window_size), "valid") / window_size
+    )
+    mean_index_error_baseline = (
+        np.convolve(mean_index_error_baseline, np.ones(window_size), "valid")
+        / window_size
+    )
+    std_index_error_baseline = (
+        np.convolve(std_index_error_baseline, np.ones(window_size), "valid")
+        / window_size
     )
     mean_F_error = (
         np.convolve(mean_F_error, np.ones(window_size), "valid") / window_size
@@ -217,24 +295,42 @@ def plot_reconstruction_loss(losses, exp_name):
         np.convolve(mean_P_error, np.ones(window_size), "valid") / window_size
     )
     std_P_error = np.convolve(std_P_error, np.ones(window_size), "valid") / window_size
+    mean_P_error_baseline = (
+        np.convolve(mean_P_error_baseline, np.ones(window_size), "valid") / window_size
+    )
+    std_P_error_baseline = (
+        np.convolve(std_P_error_baseline, np.ones(window_size), "valid") / window_size
+    )
     mean_Q_error = (
         np.convolve(mean_Q_error, np.ones(window_size), "valid") / window_size
     )
     std_Q_error = np.convolve(std_Q_error, np.ones(window_size), "valid") / window_size
 
-    plt.plot(mean_index_error, color="b", label="Index Error")
+    plt.plot(mean_index_error_dopl, color="b", linestyle="--", label="Index Error")
     plt.fill_between(
-        range(len(mean_index_error)),
-        mean_index_error - std_index_error,
-        mean_index_error + std_index_error,
+        range(len(mean_index_error_dopl)),
+        mean_index_error_dopl - std_index_error_dopl,
+        mean_index_error_dopl + std_index_error_dopl,
         alpha=0.3,
     )
-    plt.plot(mean_F_error, color="r", label="F Error")
+    plt.plot(
+        mean_index_error_baseline,
+        color="purple",
+        linestyle="--",
+        label="Baseline Index Error",
+    )
+    plt.fill_between(
+        range(len(mean_index_error_baseline)),
+        mean_index_error_baseline - std_index_error_baseline,
+        mean_index_error_baseline + std_index_error_baseline,
+        alpha=0.3,
+    )
+    plt.plot(mean_F_error, color="b", label="F Error")
     plt.fill_between(
         range(len(mean_F_error)),
         mean_F_error - std_F_error,
         mean_F_error + std_F_error,
-        color="red",
+        color="blue",
         alpha=0.3,
     )
     plt.plot(mean_P_error, color="g", label="P Error")
@@ -243,6 +339,14 @@ def plot_reconstruction_loss(losses, exp_name):
         mean_P_error - std_P_error,
         mean_P_error + std_P_error,
         color="green",
+        alpha=0.3,
+    )
+    plt.plot(mean_P_error_baseline, color="pink", label="Baseline P Error")
+    plt.fill_between(
+        range(len(mean_P_error_baseline)),
+        mean_P_error_baseline - std_P_error_baseline,
+        mean_P_error_baseline + std_P_error_baseline,
+        color="pink",
         alpha=0.3,
     )
     plt.plot(mean_Q_error, color="orange", label="Q Error")

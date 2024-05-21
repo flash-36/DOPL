@@ -2,6 +2,8 @@ import numpy as np
 from tqdm import tqdm
 from dopo.utils import compute_ELP, compute_ELP_pyomo, compute_optimal_pyomo
 from dopo.train.helpers import apply_index_policy, compute_F_true
+from dopo.train.mle import mle_bradley_terry
+from dopo.train.mle_grad_desc import mle_gradient_descent
 import logging
 import wandb
 from dopo.utils import set_seed
@@ -32,9 +34,6 @@ def enrich_F(F_tilde, F_hat, reference, conf):
     num_arms = F_hat.shape[0]
     num_states = F_hat.shape[1]
     # Use lemma 4 from paper; j1 = ref_arm, ref_state; j2 = arm, state
-    print(
-        f"Attempting to enrich F_tilde for {ref_arm, ref_state}******************************************"
-    )
     # Pick best i
     best_arm_i, best_state_i = -1, -1
     best_conf_i = np.inf
@@ -72,9 +71,6 @@ def enrich_F(F_tilde, F_hat, reference, conf):
                 F_tilde[ref_arm, ref_state, arm, state] = (
                     F_hat[ref_arm, ref_state, arm, state] + conf_inferred
                 )
-                print(
-                    f"Enriched F_tilde for {arm, state, ref_arm, ref_state}******************************************"
-                )
                 wandb.log({"successful_enrichment": 1})
             else:
                 wandb.log({"successful_enrichment": 0})
@@ -92,21 +88,28 @@ def train(env, cfg, seeds):
     # True values
     P_true = np.array(env.P_list)
     F_true = compute_F_true(env)
+    R_true = np.array(env.R_list)[:, :, 0]
 
     # Initialize utility variables
     num_arms = len(env.P_list)
     num_states = env.P_list[0].shape[0]
     num_actions = env.R_list[0].shape[1]
     # Initialze placeholders
+    battle_data = []
     W = np.zeros((num_arms, num_states, num_arms, num_states))
     if cfg.assisted_P:
         P_hat = P_true
+        P_hat_baseline = P_true
     else:
         P_hat = np.ones((num_arms, num_states, num_states, num_actions)) / num_states
+        P_hat_baseline = (
+            np.ones((num_arms, num_states, num_states, num_actions)) / num_states
+        )
 
     Z_sa = np.zeros((num_arms, num_states, num_actions))
+    Z_sa_baseline = np.zeros((num_arms, num_states, num_actions))
     Z_sas = np.zeros((num_arms, num_states, num_states, num_actions))
-
+    Z_sas_baseline = np.zeros((num_arms, num_states, num_states, num_actions))
     if cfg.reward_normalized:
         F_tilde = np.ones((num_arms, num_states, num_arms, num_states)) * (
             np.e / (np.e + 1)
@@ -115,10 +118,13 @@ def train(env, cfg, seeds):
         F_tilde = np.ones((num_arms, num_states, num_arms, num_states)) * (1 - 1e-6)
 
     F_hat = np.ones((num_arms, num_states, num_arms, num_states)) * 0.5
+    R_est = np.ones((num_arms, num_states)) * 0.5
 
     delta = np.ones((num_arms, num_states, num_actions))
+    delta_baseline = np.ones((num_arms, num_states, num_actions))
     if cfg.assisted_P:
         delta = delta * 0.001
+        delta_baseline = delta_baseline * 0.001
     conf = np.ones((num_arms, num_states, num_arms, num_states)) * 2
 
     # Set self battles to 0.5
@@ -130,23 +136,32 @@ def train(env, cfg, seeds):
 
     # Performance trackers
     train_curve = []
+    baseline_curve = []
     rand_curve = []
     opt_curve = []
     # Loss trackers
-    index_error = []
+    index_error_dopl = []
+    index_error_baseline = []
+
     F_error = []
     P_error = []
+    P_error_baseline = []
     Q_error = []
+    R_est_error = []
 
     # Meta trackers
     episode_delta_tracker_min = []
+    episode_delta_baseline_tracker_min = []
     episode_delta_tracker_mean = []
+    episode_delta_baseline_tracker_mean = []
     episode_conf_tracker_mean = []
     episode_conf_tracker_min = []
     elp_cost_tracker = []
+    elp_cost_baseline_tracker = []
 
     # Start training
     failure_point = K
+    failure_point_baseline = K
 
     for k in tqdm(range(K)):
         if cfg.reference_strategy == "random":
@@ -155,6 +170,7 @@ def train(env, cfg, seeds):
             ref_arm, ref_state = pick_best_ref(W)
         elif cfg.reference_strategy == "fixed":
             ref_arm, ref_state = 0, 0
+        ref_state = 0
         # Compute the corresponding index policy
         if cfg.enrich_F:
             # Use lemma in paper to estimte better F_tilde values
@@ -166,12 +182,9 @@ def train(env, cfg, seeds):
             else:
                 F_tilde = np.clip(F_tilde, 1e-6, 1 - 1e-6)
                 F_hat = np.clip(F_hat, 1e-6, 1 - 1e-6)
-        Q_n_s = np.log(
-            F_tilde[:, :, ref_arm, ref_state] / (1 - F_tilde[:, :, ref_arm, ref_state])
-        )
-        Q_true = np.log(
-            F_true[:, :, ref_arm, ref_state] / (1 - F_true[:, :, ref_arm, ref_state])
-        )
+        Q_n_s = -np.log(F_tilde[ref_arm][ref_state] / (1 - F_tilde[ref_arm][ref_state]))
+        Q_true = -np.log(F_true[ref_arm][ref_state] / (1 - F_true[ref_arm][ref_state]))
+
         ##compute the policy
         solution, elp_opt_cost = compute_ELP_pyomo(
             delta,
@@ -199,8 +212,16 @@ def train(env, cfg, seeds):
             num_states,
             num_actions,
         )
-        print(f"ELP cost true: {elp_opt_cost_true}________________________________")
-        print(f"ELP cost: {elp_opt_cost}________________________________")
+        ##compute the baseline policy
+        solution_baseline, elp_opt_cost_baseline = compute_ELP_pyomo(
+            delta_baseline,
+            P_hat_baseline,
+            env.arm_constraint,
+            num_states,
+            num_actions,
+            R_est,
+            num_arms,
+        )
         if solution is not None:
             W_sas = solution
         else:
@@ -215,25 +236,56 @@ def train(env, cfg, seeds):
                 if failure_point == K:
                     failure_point = k
         elp_cost_tracker.append(elp_opt_cost)
+
         W_sa = np.sum(W_sas, axis=2)
-        index_matrix = W_sa[:, :, 1] / (W_sa[:, :, 0] + W_sa[:, :, 1])
-        index_matrix = np.nan_to_num(index_matrix, nan=0.0)
+        index_matrix_pre_nan = W_sa[:, :, 1] / (W_sa[:, :, 0] + W_sa[:, :, 1])
+        index_matrix = np.nan_to_num(index_matrix_pre_nan, nan=0.0)
+
+        if solution_baseline is not None:
+            W_sas_baseline = solution_baseline
+        else:
+            elp_opt_cost_baseline = (
+                elp_cost_baseline_tracker[-1]
+                if len(elp_cost_baseline_tracker) > 0
+                else elp_opt_cost_baseline
+            )
+            if k == 0:
+                print("No feasible solution in first iteration!")
+                SystemExit()
+            else:
+                print("No feasible solution! Retaining the previous solution.")
+                if failure_point_baseline == K:
+                    failure_point_baseline = k
+        elp_cost_baseline_tracker.append(elp_opt_cost_baseline)
+        W_sa_baseline = np.sum(W_sas_baseline, axis=2)
+        index_matrix_baseline_pre_nan = W_sa_baseline[:, :, 1] / (
+            W_sa_baseline[:, :, 0] + W_sa_baseline[:, :, 1]
+        )
+        index_matrix_baseline = np.nan_to_num(index_matrix_baseline_pre_nan, nan=0.0)
 
         # Evaluate the policy
         train_curve.append(eval(10, env, index_matrix))
+        baseline_curve.append(eval(10, env, index_matrix_baseline))
         rand_curve.append(eval(10, env, np.random.rand(num_arms, num_states)))
         opt_curve.append(eval(10, env, env.opt_index))
 
         # Compute recosntruction losses
-        index_error.append(np.linalg.norm(index_matrix - env.opt_index))
+        index_error_dopl.append(np.linalg.norm(index_matrix - env.opt_index))
+        index_error_baseline.append(
+            np.linalg.norm(index_matrix_baseline - env.opt_index)
+        )
         F_error.append(np.linalg.norm(F_hat - F_true))
         P_error.append(np.linalg.norm(P_hat - P_true))
+        P_error_baseline.append(np.linalg.norm(P_hat_baseline - P_true))
         Q_error.append(np.linalg.norm(Q_n_s - Q_true))
+        R_est_error.append(np.linalg.norm(R_est - R_true))
 
         # Update F_tilde according to alg 3
         # Meta trackers episode level
         delta_tracker = []
+        delta_baseline_tracker = []
         conf_tracker = []
+        # DOPL
         s_list = env.reset()
         for t in range(env.H):
             action = apply_index_policy(s_list, index_matrix, env.arm_constraint)
@@ -308,17 +360,76 @@ def train(env, cfg, seeds):
                     )  # For numerical stability
                     F_hat = np.clip(F_hat, 1e-6, 1 - 1e-6)
             s_list = s_dash_list
+
         episode_delta_tracker_min.append(min(delta_tracker))
         episode_delta_tracker_mean.append(np.mean(delta_tracker))
         episode_conf_tracker_min.append(min(conf_tracker))
         episode_conf_tracker_mean.append(np.mean(conf_tracker))
 
+        # Baseline
+        if not cfg.mle_cumulative:
+            battle_data = []  # Flush prev battle_data
+        s_list_baseline = env.reset()
+        for t in range(env.H):
+            action_baseline = apply_index_policy(
+                s_list_baseline, index_matrix_baseline, env.arm_constraint
+            )
+            s_dash_list_baseline, _, _, _, info_baseline = env.step(action_baseline)
+            for arm_id, s, a, s_dash in zip(
+                range(num_arms), s_list_baseline, action_baseline, s_dash_list_baseline
+            ):
+                if not cfg.assisted_P:
+                    Z_sa_baseline[arm_id, s, a] += 1
+                    Z_sas_baseline[arm_id, s, s_dash, a] += 1
+                    delta_baseline[arm_id, s, a] = np.sqrt(
+                        np.log(
+                            4
+                            * num_states
+                            * num_actions
+                            * num_arms
+                            * (k + 1)
+                            * env.H
+                            / delta_coeff
+                        )
+                        / (2 * Z_sa_baseline[arm_id, s, a])
+                    )
+                    delta_baseline_tracker.append(delta_baseline[arm_id, s, a])
+                    P_hat_baseline[arm_id, s, s_dash, a] = Z_sas_baseline[
+                        arm_id, s, s_dash, a
+                    ] / np.maximum(1, Z_sa_baseline[arm_id, s, a])
+                    true_diff = np.abs(
+                        P_true[arm_id, s, s_dash, a]
+                        - P_hat_baseline[arm_id, s, s_dash, a]
+                    )
+                    if (
+                        true_diff > delta_baseline[arm_id, s, a]
+                        or delta_baseline[arm_id, s, a] <= 0.0
+                    ):
+                        print(
+                            f"Expected to fail ---- {true_diff} > {delta_baseline[arm_id, s, a]}"
+                        )
+                        SystemExit()
+            for record in info_baseline["duelling_results"]:
+                winner, loser = record
+                battle_data.append(
+                    [winner, s_list_baseline[winner], loser, s_list_baseline[loser]]
+                )
+            s_list_baseline = s_dash_list_baseline
+        episode_delta_baseline_tracker_mean.append(np.mean(delta_baseline_tracker))
+        episode_delta_baseline_tracker_min.append(min(delta_baseline_tracker))
+        if cfg.mle_method == "first_order":
+            R_est = mle_gradient_descent(np.array(battle_data), R_est)
+        elif cfg.mle_method == "second_order":
+            R_est = mle_bradley_terry(np.array(battle_data), R_est)
+
         wandb.log(
             {
+                "k": k,
                 "train_curve": train_curve[-1],
+                "baseline_curve": baseline_curve[-1],
                 "rand_curve": rand_curve[-1],
                 "opt_curve": opt_curve[-1],
-                "Index_error": index_error[-1],
+                "index_error_dopl": index_error_dopl[-1],
                 "F_error": F_error[-1],
                 "P_error": P_error[-1],
                 "Q_error": Q_error[-1],
@@ -326,8 +437,11 @@ def train(env, cfg, seeds):
                 "elp_cost_true": elp_opt_cost_true,
                 "elp_cost_truly_true": elp_opt_cost_truly_true,
                 "failure_point": failure_point,
+                "failure_point_baseline": failure_point_baseline,
                 "delta_min": episode_delta_tracker_min[-1],
                 "delta_mean": episode_delta_tracker_mean[-1],
+                "delta_baseline_min": episode_delta_baseline_tracker_min[-1],
+                "delta_baseline_mean": episode_delta_baseline_tracker_mean[-1],
                 "conf_min": episode_conf_tracker_min[-1],
                 "conf_mean": episode_conf_tracker_mean[-1],
                 "reference_arm": ref_arm,
@@ -337,13 +451,16 @@ def train(env, cfg, seeds):
         # breakpoint()
     performance = {
         "train_curve": train_curve,
+        "baseline_curve": baseline_curve,
         "rand_curve": rand_curve,
         "opt_curve": opt_curve,
     }
     loss = {
-        "index_error": index_error,
+        "index_error_dopl": index_error_dopl,
+        "index_error_baseline": index_error_baseline,
         "F_error": F_error,
-        "P_error": P_error,
+        "P_error_dopl": P_error,
+        "P_error_baseline": P_error_baseline,
         "Q_error": Q_error,
     }
     meta = {

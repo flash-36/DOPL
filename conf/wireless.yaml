@@ -1,23 +1,29 @@
 defaults:
+  - override hydra/launcher: joblib
   - _self_
 
-exp:
-  name: "wireless_env"
 
-num_seeds : 3
+num_seeds : 1
 reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
 assisted_P: False # Set this to true if you want to estimate only F and not P
 K : 1000
-H : 400
-delta_coeff : 1e-5
-conf_coeff : 1e-5
+H : 10
+eps : 1e-5
+delta_coeff : ${eps}
+conf_coeff : ${eps}
 reference_strategy: "best" # or "random" or "fixed"
-enrich_F : False # Set this to true if you want to enrich F using lemma 4 in paper
+enrich_F : True # Set this to true if you want to enrich F using lemma 4 in paper
+mle_method: "first_order" # or "second_order"
+mle_cummulatives: False
+
+
+exp:
+  name: small_wireless_env_H_${H}_eps_${eps}
 
 
 
 env_config:
   arm: "wireless"
   num_types: 1
-  num_arms_per_type: 10
-  arm_constraint: 4
+  num_arms_per_type: 6
+  arm_constraint: 3
