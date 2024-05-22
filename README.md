@@ -1,5 +1,5 @@
-# dopo
-Direct Online Preference Optimization
+# DOPL
+Direct Online Preference Learning
 
 ```python run.py --config-name=<env_name>```
 
