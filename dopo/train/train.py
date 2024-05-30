@@ -7,6 +7,7 @@ from dopo.train.mle_grad_desc import mle_gradient_descent
 import logging
 import wandb
 from dopo.utils import set_seed
+import time
 
 log = logging.getLogger(__name__)
 # delta_scheduler = [0.5] * 2000 + [0.2] * 2000 + [0.1] * 20000 + [0.05] * 20000
@@ -20,7 +21,7 @@ def pick_best_ref(W):
             if W[arm, state].sum() > W[ref_arm, ref_state].sum():
                 ref_arm = arm
                 ref_state = state
-    return ref_arm, ref_state
+    return ref_arm, 0
 
 
 def pick_random_ref(W):
@@ -125,7 +126,10 @@ def train(env, cfg, seeds):
     if cfg.assisted_P:
         delta = delta * 0.001
         delta_baseline = delta_baseline * 0.001
-    conf = np.ones((num_arms, num_states, num_arms, num_states)) * 2
+    conf = np.ones((num_arms, num_states, num_arms, num_states)) * np.sqrt(
+        np.log(4 * num_states * num_actions * num_arms * K * env.H / (delta_coeff))
+        / (2)
+    )
 
     # Set self battles to 0.5
     for arm in range(num_arms):
@@ -139,6 +143,10 @@ def train(env, cfg, seeds):
     baseline_curve = []
     rand_curve = []
     opt_curve = []
+    dopl_train_regret = []
+    baseline_train_regret = []
+    dopl_train_regret_cumulative = []
+    baseline_train_regret_cumulative = []
     # Loss trackers
     index_error_dopl = []
     index_error_baseline = []
@@ -163,6 +171,10 @@ def train(env, cfg, seeds):
     failure_point = K
     failure_point_baseline = K
 
+    # Timing trackers
+    dopl_timing_ticker = 0
+    baseline_timing_ticker = 0
+
     for k in tqdm(range(K)):
         if cfg.reference_strategy == "random":
             ref_arm, ref_state = pick_random_ref(W)
@@ -174,6 +186,7 @@ def train(env, cfg, seeds):
         # Compute the corresponding index policy
         if cfg.enrich_F:
             # Use lemma in paper to estimte better F_tilde values
+            start_time = time.time()
             F_tilde, F_hat = enrich_F(F_tilde, F_hat, (ref_arm, ref_state), conf)
             # Clip F_tilde and F_hat according to reward normalization
             if cfg.reward_normalized:
@@ -182,10 +195,16 @@ def train(env, cfg, seeds):
             else:
                 F_tilde = np.clip(F_tilde, 1e-6, 1 - 1e-6)
                 F_hat = np.clip(F_hat, 1e-6, 1 - 1e-6)
-        Q_n_s = -np.log(F_tilde[ref_arm][ref_state] / (1 - F_tilde[ref_arm][ref_state]))
-        Q_true = -np.log(F_true[ref_arm][ref_state] / (1 - F_true[ref_arm][ref_state]))
-
+        Q_n_s = np.log(
+            F_tilde[:, :, ref_arm, ref_state] / (1 - F_tilde[:, :, ref_arm, ref_state])
+        )
+        end_time = time.time()
+        dopl_timing_ticker += end_time - start_time
+        Q_true = np.log(
+            F_true[:, :, ref_arm, ref_state] / (1 - F_true[:, :, ref_arm, ref_state])
+        )
         ##compute the policy
+        start_time = time.time()
         solution, elp_opt_cost = compute_ELP_pyomo(
             delta,
             P_hat,
@@ -195,6 +214,8 @@ def train(env, cfg, seeds):
             Q_n_s,
             num_arms,
         )
+        end_time = time.time()
+        dopl_timing_ticker += end_time - start_time
         _, elp_opt_cost_true = compute_ELP_pyomo(
             delta,
             P_hat,
@@ -213,6 +234,7 @@ def train(env, cfg, seeds):
             num_actions,
         )
         ##compute the baseline policy
+        start_time = time.time()
         solution_baseline, elp_opt_cost_baseline = compute_ELP_pyomo(
             delta_baseline,
             P_hat_baseline,
@@ -222,6 +244,9 @@ def train(env, cfg, seeds):
             R_est,
             num_arms,
         )
+        end_time = time.time()
+        baseline_timing_ticker += end_time - start_time
+        start_time = time.time()
         if solution is not None:
             W_sas = solution
         else:
@@ -240,7 +265,9 @@ def train(env, cfg, seeds):
         W_sa = np.sum(W_sas, axis=2)
         index_matrix_pre_nan = W_sa[:, :, 1] / (W_sa[:, :, 0] + W_sa[:, :, 1])
         index_matrix = np.nan_to_num(index_matrix_pre_nan, nan=0.0)
-
+        end_time = time.time()
+        dopl_timing_ticker += end_time - start_time
+        start_time = time.time()
         if solution_baseline is not None:
             W_sas_baseline = solution_baseline
         else:
@@ -262,7 +289,8 @@ def train(env, cfg, seeds):
             W_sa_baseline[:, :, 0] + W_sa_baseline[:, :, 1]
         )
         index_matrix_baseline = np.nan_to_num(index_matrix_baseline_pre_nan, nan=0.0)
-
+        end_time = time.time()
+        baseline_timing_ticker += end_time - start_time
         # Evaluate the policy
         train_curve.append(eval(10, env, index_matrix))
         baseline_curve.append(eval(10, env, index_matrix_baseline))
@@ -286,10 +314,13 @@ def train(env, cfg, seeds):
         delta_baseline_tracker = []
         conf_tracker = []
         # DOPL
+        start_time = time.time()
         s_list = env.reset()
+        dopl_train_regret_episode = 0
         for t in range(env.H):
             action = apply_index_policy(s_list, index_matrix, env.arm_constraint)
-            s_dash_list, reward, _, _, info = env.step(action)
+            s_dash_list, reward_dopl, _, _, info = env.step(action)
+            dopl_train_regret_episode += reward_dopl
             for arm_id, s, a, s_dash in zip(
                 range(num_arms), s_list, action, s_dash_list
             ):
@@ -360,13 +391,17 @@ def train(env, cfg, seeds):
                     )  # For numerical stability
                     F_hat = np.clip(F_hat, 1e-6, 1 - 1e-6)
             s_list = s_dash_list
-
+        dopl_train_regret.append(env.opt_cost * env.H - dopl_train_regret_episode)
+        dopl_train_regret_cumulative.append(sum(dopl_train_regret))
         episode_delta_tracker_min.append(min(delta_tracker))
         episode_delta_tracker_mean.append(np.mean(delta_tracker))
         episode_conf_tracker_min.append(min(conf_tracker))
         episode_conf_tracker_mean.append(np.mean(conf_tracker))
-
+        end_time = time.time()
+        dopl_timing_ticker += end_time - start_time
         # Baseline
+        start_time = time.time()
+        baseline_train_regret_episode = 0
         if not cfg.mle_cumulative:
             battle_data = []  # Flush prev battle_data
         s_list_baseline = env.reset()
@@ -374,7 +409,10 @@ def train(env, cfg, seeds):
             action_baseline = apply_index_policy(
                 s_list_baseline, index_matrix_baseline, env.arm_constraint
             )
-            s_dash_list_baseline, _, _, _, info_baseline = env.step(action_baseline)
+            s_dash_list_baseline, reward_mle, _, _, info_baseline = env.step(
+                action_baseline
+            )
+            baseline_train_regret_episode += reward_mle
             for arm_id, s, a, s_dash in zip(
                 range(num_arms), s_list_baseline, action_baseline, s_dash_list_baseline
             ):
@@ -415,13 +453,18 @@ def train(env, cfg, seeds):
                     [winner, s_list_baseline[winner], loser, s_list_baseline[loser]]
                 )
             s_list_baseline = s_dash_list_baseline
+        baseline_train_regret.append(
+            env.opt_cost * env.H - baseline_train_regret_episode
+        )
+        baseline_train_regret_cumulative.append(sum(baseline_train_regret))
         episode_delta_baseline_tracker_mean.append(np.mean(delta_baseline_tracker))
         episode_delta_baseline_tracker_min.append(min(delta_baseline_tracker))
         if cfg.mle_method == "first_order":
             R_est = mle_gradient_descent(np.array(battle_data), R_est)
         elif cfg.mle_method == "second_order":
             R_est = mle_bradley_terry(np.array(battle_data), R_est)
-
+        end_time = time.time()
+        baseline_timing_ticker += end_time - start_time
         wandb.log(
             {
                 "k": k,
@@ -430,6 +473,7 @@ def train(env, cfg, seeds):
                 "rand_curve": rand_curve[-1],
                 "opt_curve": opt_curve[-1],
                 "index_error_dopl": index_error_dopl[-1],
+                "index_error_baseline": index_error_baseline[-1],
                 "F_error": F_error[-1],
                 "P_error": P_error[-1],
                 "Q_error": Q_error[-1],
@@ -446,6 +490,12 @@ def train(env, cfg, seeds):
                 "conf_mean": episode_conf_tracker_mean[-1],
                 "reference_arm": ref_arm,
                 "reference_state": ref_state,
+                "train_regret_dopl": dopl_train_regret[-1],
+                "train_regret_baseline": baseline_train_regret[-1],
+                "train_regret_cumulative_dopl": dopl_train_regret_cumulative[-1],
+                "train_regret_cumulative_baseline": baseline_train_regret_cumulative[
+                    -1
+                ],
             }
         )
         # breakpoint()
@@ -454,6 +504,8 @@ def train(env, cfg, seeds):
         "baseline_curve": baseline_curve,
         "rand_curve": rand_curve,
         "opt_curve": opt_curve,
+        "dopl_train_regret": dopl_train_regret_cumulative,
+        "baseline_train_regret": baseline_train_regret_cumulative,
     }
     loss = {
         "index_error_dopl": index_error_dopl,
@@ -469,6 +521,12 @@ def train(env, cfg, seeds):
         "elp_cost_tracker": elp_cost_tracker,
     }
     # breakpoint()
+    print(f"DOPL timing: {dopl_timing_ticker}")
+    print(f"Baseline timing: {baseline_timing_ticker}")
+    # percentage increase from dopl to baseline
+    print(
+        f"Percentage increase in computation time: {(baseline_timing_ticker - dopl_timing_ticker) / dopl_timing_ticker * 100}"
+    )
     return performance, loss, meta, failure_point
 
 

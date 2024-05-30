@@ -6,8 +6,8 @@ defaults:
 num_seeds : 3
 reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
 assisted_P: False # Set this to true if you want to estimate only F and not P
-K : 60
-H : 5000
+K : 100
+H : 50
 eps : 1e-5
 delta_coeff : ${eps}
 conf_coeff : ${eps}
@@ -24,4 +24,4 @@ env_config:
   num_arms_per_type: 10
   arm_constraint: 10
 exp:
-  name: toy_env_H_${H}_eps_${eps}
+  name: toy_env_${mle_method}

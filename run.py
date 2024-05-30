@@ -41,7 +41,7 @@ def main(cfg: DictConfig):
         R_list.extend([R] * num_arms_per_type)
     # Shffle ordering of arms so as to not have biases
     indices = list(range(len(P_list)))
-    random.seed(42)
+    random.seed(0)
     random.shuffle(indices)
     P_list = [P_list[i] for i in indices]
     R_list = [R_list[i] for i in indices]

@@ -22,3 +22,11 @@ vs_env_H_40_eps_1e-10_seed_1	1183
 vs_env_H_40_eps_1e-05_seed_1	765
 vs_env_H_300_eps_1e-10_seed_1	491
 vs_env_H_300_eps_1e-05_seed_1	350
+
+
+# toy
+srun --cpus-per-task=8 -J NeurIPS -p cpu-research  -q research --pty python run.py --config-name=toy -m ++mle_method=first_order,second_order
+# cpap
+srun --cpus-per-task=8 -J NeurIPS -p cpu-research  -q research --pty python run.py --config-name=cpap -m ++mle_method=first_order,second_order
+# LMSS
+srun --cpus-per-task=8 -J NeurIPS -p cpu-research  -q research --pty python run.py --config-name=LMSS -m ++mle_method=first_order,second_order

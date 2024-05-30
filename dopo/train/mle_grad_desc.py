@@ -38,7 +38,7 @@ def gradient(R, comparisons):
     return -grad  # Minimize negative log-likelihood
 
 
-def mle_gradient_descent(comparisons, R_est, learning_rate=0.01, max_iter=1000):
+def mle_gradient_descent(comparisons, R_est, learning_rate=0.08, max_iter=6000):
     print("Calculating MLE...")
     R = R_est  # Estimate from previous iteration
     for iteration in range(max_iter):
