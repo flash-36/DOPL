@@ -14,14 +14,14 @@ log = logging.getLogger(__name__)
 
 
 def pick_best_ref(W):
-    ref_arm = 0
-    ref_state = 0
+    ref_arm = np.random.randint(0, W.shape[0])
+    ref_state = np.random.randint(0, W.shape[1])
     for arm in range(W.shape[0]):
         for state in range(W.shape[1]):
             if W[arm, state].sum() > W[ref_arm, ref_state].sum():
                 ref_arm = arm
                 ref_state = state
-    return ref_arm, 0
+    return ref_arm, ref_state
 
 
 def pick_random_ref(W):
@@ -29,8 +29,7 @@ def pick_random_ref(W):
     ref_state = np.random.randint(0, W.shape[1])
     return ref_arm, ref_state
 
-
-def enrich_F(F_tilde, F_hat, reference, conf):
+def best(F_hat,reference,conf,arm,state):
     ref_arm, ref_state = reference
     num_arms = F_hat.shape[0]
     num_states = F_hat.shape[1]
@@ -40,15 +39,39 @@ def enrich_F(F_tilde, F_hat, reference, conf):
     best_conf_i = np.inf
     for arm_i in range(num_arms):
         for state_i in range(num_states):
+            if(arm_i==ref_arm and state_i==ref_state):continue
+            if conf[ref_arm, ref_state, arm_i, state_i] +  conf[arm_i, state_i, arm, state]< best_conf_i:
+                best_arm_i, best_state_i = arm_i,state_i
+                best_conf_i = conf[ref_arm, ref_state, arm_i, state_i] +  conf[arm_i, state_i, arm, state]
+    return best_conf_i,best_arm_i,best_state_i
+    
+def enrich_F(F_tilde, F_hat, reference, conf,W,num=10):
+
+    ref_arm, ref_state = reference
+    num_arms = F_hat.shape[0]
+    num_states = F_hat.shape[1]
+    # Use lemma 4 from paper; j1 = ref_arm, ref_state; j2 = arm, state
+    # Pick best i
+    best_arm_i, best_state_i = -1, -1
+    best_conf_i = np.inf
+    for arm_i in range(num_arms):
+        for state_i in range(num_states):
+            if(arm_i==ref_arm and state_i==ref_state):continue
             if conf[ref_arm, ref_state, arm_i, state_i] < best_conf_i:
                 best_arm_i, best_state_i = arm_i, state_i
                 best_conf_i = conf[ref_arm, ref_state, arm_i, state_i]
+    # breakpoint()
     # Use best i to enrich F
     for arm in range(num_arms):
         for state in range(num_states):
-            conf_inferred = (
-                best_conf_i + conf[arm, state, best_arm_i, best_state_i]
-            ) * 1.3
+        
+            # conf_inferred = (
+            #     best_conf_i + conf[arm, state, best_arm_i, best_state_i]
+            # ) * 1.3
+            conf_inferred,best_arm_i,best_state_i = best(F_hat,reference,conf,arm,state)
+            conf_inferred*=1.3
+            # if(num==15):breakpoint()
+            
             if conf_inferred < conf[ref_arm, ref_state, arm, state]:
 
                 F_hat[ref_arm, ref_state, arm, state] = (
@@ -90,6 +113,7 @@ def train(env, cfg, seeds):
     P_true = np.array(env.P_list)
     F_true = compute_F_true(env)
     R_true = np.array(env.R_list)[:, :, 0]
+    # breakpoint()
 
     # Initialize utility variables
     num_arms = len(env.P_list)
@@ -113,7 +137,7 @@ def train(env, cfg, seeds):
     Z_sas_baseline = np.zeros((num_arms, num_states, num_states, num_actions))
     if cfg.reward_normalized:
         F_tilde = np.ones((num_arms, num_states, num_arms, num_states)) * (
-            np.e / (np.e + 1)
+            0.5
         )
     else:
         F_tilde = np.ones((num_arms, num_states, num_arms, num_states)) * (1 - 1e-6)
@@ -182,12 +206,12 @@ def train(env, cfg, seeds):
             ref_arm, ref_state = pick_best_ref(W)
         elif cfg.reference_strategy == "fixed":
             ref_arm, ref_state = 0, 0
-        ref_state = 0
+        
         # Compute the corresponding index policy
         if cfg.enrich_F:
             # Use lemma in paper to estimte better F_tilde values
             start_time = time.time()
-            F_tilde, F_hat = enrich_F(F_tilde, F_hat, (ref_arm, ref_state), conf)
+            F_tilde, F_hat = enrich_F(F_tilde, F_hat, (ref_arm, ref_state), conf,W,k)
             # Clip F_tilde and F_hat according to reward normalization
             if cfg.reward_normalized:
                 F_tilde = np.clip(F_tilde, 1 / (np.e + 1), np.e / (np.e + 1))
