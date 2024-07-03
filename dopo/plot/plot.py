@@ -8,7 +8,7 @@ from dopo.utils import load_results
 
 def plot_training_performance(cfg):
     window_size = cfg["plotting"]["window_size"]
-    colors = cfg["plotting"]["colors"]
+    colors = cfg["plotting"]["algo_colors"]
     algos = cfg["algos"]
     color_map = {algo: color for algo, color in zip(algos, colors)}
     results_dicts = load_results()

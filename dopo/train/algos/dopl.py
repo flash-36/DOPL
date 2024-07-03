@@ -61,7 +61,7 @@ def train(env, cfg):
 
         # Enrich F estimate
         ref_arm, ref_state = pick_best_ref(W)
-        F_tilde, F_hat = enrich_F(F_tilde, F_hat, (ref_arm, ref_state), conf, W, k)
+        F_tilde, F_hat = enrich_F(F_tilde, F_hat, (ref_arm, ref_state), conf)
         if cfg.reward_normalized:
             F_tilde = np.clip(F_tilde, 1 / (np.e + 1), np.e / (np.e + 1))
             F_hat = np.clip(F_hat, 1 / (np.e + 1), np.e / (np.e + 1))
