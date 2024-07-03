@@ -20,7 +20,6 @@ def train(env, cfg):
 
     P_true = np.array(env.P_list)
     F_true = compute_F_true(env)
-    R_true = np.array(env.R_list)[:, :, 0]
 
     num_arms = len(env.P_list)
     num_states = env.P_list[0].shape[0]
@@ -162,6 +161,6 @@ def train(env, cfg):
 
         metrics["reward"].append(reward_episode)
 
-        wandb_log_latest(metrics, k)
+        wandb_log_latest(metrics, "dopl")
 
     return metrics

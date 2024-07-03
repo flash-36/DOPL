@@ -60,7 +60,7 @@ def plot_training_performance(cfg):
     axes[0].set_title("Reward", fontsize=50)
 
     # Plot regret curves
-    fig, axes = plt.subplots(1, 2, figsize=(30, 10))
+    # fig, axes = plt.subplots(1, 2, figsize=(30, 10))
     for algo_name in results_dicts[0].keys() - {"oracle"}:
         regrets = [
             list(results_dict[algo_name]["regret"]) for results_dict in results_dicts

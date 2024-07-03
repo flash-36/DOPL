@@ -11,7 +11,9 @@ from dopo.plot import (
     plot_reconstruction_loss,
 )
 import warnings
+import logging
 
+logging.getLogger("pyomo").setLevel(logging.ERROR)
 warnings.filterwarnings("ignore")
 
 

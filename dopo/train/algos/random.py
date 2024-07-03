@@ -28,5 +28,5 @@ def train(env, cfg):
             reward_episode += reward
             s_list = s_dash_list
         metrics["reward"].append(reward_episode)
-        wandb_log_latest(metrics, k)
+        wandb_log_latest(metrics, "random")
     return metrics

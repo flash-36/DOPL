@@ -100,14 +100,12 @@ def load_results():
                 results_dict = json.load(json_file)
                 all_results.append(results_dict)
     if all_results:
-        for i, result in enumerate(all_results):
-            print(f"Loaded results for seed {i}: {result}")
         return all_results
     else:
         raise FileNotFoundError("No results found in the output directory.")
 
 
-def wandb_log_latest(metrics, step):
+def wandb_log_latest(metrics, algo_name):
     """Log metrics to wandb."""
     for key, value in metrics.items():
-        wandb.log({key: value[-1]}, step=step)
+        wandb.log({f"{algo_name}_{key}": value[-1]})

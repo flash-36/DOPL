@@ -1,5 +1,6 @@
 import numpy as np
 from dopo.utils import compute_optimal, compute_optimal_pyomo
+import torch
 
 
 def apply_index_policy(state_list, index_matrix, arm_constraint):
@@ -12,6 +13,22 @@ def apply_index_policy(state_list, index_matrix, arm_constraint):
     index_vector = index_matrix[np.arange(len(state_list)), state_list]
     largest_indices = np.argsort(index_vector)[-arm_constraint:]
     action = np.zeros(len(index_vector), dtype=int)
+    action[largest_indices] = 1
+    return action
+
+
+def apply_nn_policy(state_list, policy_net, arm_constraint):
+    """
+    state_list: list of states for each arm; 1*num_arms
+    policy_net: neural network
+
+    return: list of actions for each arm; 1*num_arms
+    """
+    state_tensor = torch.tensor(state_list, dtype=torch.float32).unsqueeze(0)
+    action_probs = policy_net(state_tensor)
+    action_probs = action_probs.detach().numpy().flatten()
+    largest_indices = np.argsort(action_probs)[-arm_constraint:]
+    action = np.zeros(len(action_probs), dtype=int)
     action[largest_indices] = 1
     return action
 

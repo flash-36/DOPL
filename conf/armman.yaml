@@ -3,21 +3,21 @@ defaults:
   - _self_
 
 
+num_seeds : 3
+reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
+K : 6500
+H : 5
+eps : 1e-5
+algos : ["dopl","mle_lp", "random", "oracle"]
+
+plotting:
+  window_size: 100
+  algo_colors: ["blue", "yellow", "red", "green"]
+
 env_config:
   arm: "armman"
   num_types: 10
   num_arms_per_type: 2
   arm_constraint: 10
-
-
-
-num_seeds : 3
-reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
-K : 5000
-H : 20
-eps : 1e-5
-mle_cumulative: False
-
-
 exp:
-  name: armman_env_${H}_H
+  name: armman_env

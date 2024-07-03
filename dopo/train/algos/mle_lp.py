@@ -88,7 +88,7 @@ def train(env, cfg):
         R_est = mle_bradley_terry(np.array(battle_data), R_est)
         metrics["reward"].append(reward_episode)
 
-        wandb_log_latest(metrics, k)
+        wandb_log_latest(metrics, "mle_lp")
 
     return metrics
 
@@ -121,7 +121,6 @@ def mle_bradley_terry(comparisons, R_est):
     initial_guess = R_est.flatten()  # Flatten R for optimization
     bounds = [(0, 1) for _ in range(num_arms * num_states)]
 
-    print("Calculating MLE...")
     result = minimize(
         neg_log_likelihood,
         initial_guess,
