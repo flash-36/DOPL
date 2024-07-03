@@ -6,6 +6,7 @@ import hydra
 import pandas as pd
 import numpy as np
 from pathlib import Path
+import json
 
 RMAB_PATH = os.path.join(Path(__file__).parent.parent, "RMAB_env_instances")
 
@@ -54,27 +55,53 @@ def initialize_environment(cfg, P_list, R_list, arm_constraint):
     return env
 
 
+# def save_results(results_dict, seeds):
+#     """Save results to disk"""
+#     results_dict = pd.DataFrame(results_dict)
+#     hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
+#     output_dir = hydra_cfg.runtime.output_dir
+#     results_dict.to_csv(os.path.join(output_dir, f"results_{seeds}.csv"))
+
+
+# def load_results():
+#     """Load results from disk for all seeds"""
+#     hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
+#     output_dir = hydra_cfg.runtime.output_dir
+#     all_results = []
+
+#     for filename in os.listdir(output_dir):
+#         if filename.startswith("results_") and filename.endswith(".csv"):
+#             file_path = os.path.join(output_dir, filename)
+#             df = pd.read_csv(file_path)
+#             all_results.append(df)
+
+#     if all_results:
+#         return all_results
+#     else:
+#         raise FileNotFoundError("No results found in the output directory.")
+
+
 def save_results(results_dict, seeds):
-    """Save results to disk"""
-    results_dict = pd.DataFrame(results_dict)
     hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
     output_dir = hydra_cfg.runtime.output_dir
-    results_dict.to_csv(os.path.join(output_dir, f"results_{seeds}.csv"))
+    file_path = os.path.join(output_dir, f"results_{seeds}.json")
+    with open(file_path, "w") as json_file:
+        json.dump(results_dict, json_file, indent=4)
 
 
 def load_results():
-    """Load results from disk for all seeds"""
     hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
     output_dir = hydra_cfg.runtime.output_dir
     all_results = []
-
     for filename in os.listdir(output_dir):
-        if filename.startswith("results_") and filename.endswith(".csv"):
+        if filename.startswith("results_") and filename.endswith(".json"):
             file_path = os.path.join(output_dir, filename)
-            df = pd.read_csv(file_path)
-            all_results.append(df)
-
+            with open(file_path, "r") as json_file:
+                results_dict = json.load(json_file)
+                all_results.append(results_dict)
     if all_results:
+        for i, result in enumerate(all_results):
+            print(f"Loaded results for seed {i}: {result}")
         return all_results
     else:
         raise FileNotFoundError("No results found in the output directory.")

@@ -15,7 +15,9 @@ def plot_training_performance(cfg):
     for results_dict in results_dicts:
         for algo_name, results in results_dict.items():
             if algo_name != "oracle":
-                results["regret"] = results_dict["oracle"]["reward"] - results["reward"]
+                results["regret"] = np.array(
+                    results_dict["oracle"]["reward"]
+                ) - np.array(results["reward"])
                 results["regret"] = results["regret"].cumsum()
 
     # Plot reward curves
@@ -118,5 +120,5 @@ def plot_training_performance(cfg):
     plt.close(fig)
 
 
-def plot_reconstruction_loss(losses, exp_name):
+def plot_reconstruction_loss(cfg):
     pass  # TODO
