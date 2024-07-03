@@ -1,23 +1,17 @@
-from pathlib import Path
+from dopo.envs import MultiArmRestlessDuellingEnv
+import random
+import wandb
 import os
+import hydra
+import pandas as pd
 import numpy as np
-import math
-import pulp as p
-import sys
+from pathlib import Path
 
 RMAB_PATH = os.path.join(Path(__file__).parent.parent, "RMAB_env_instances")
 
 
-def check_stochasticity(P):
-    for n in range(P.shape[0]):
-        for s in range(P.shape[1]):
-            for a in range(P.shape[3]):
-                if not math.isclose(np.sum(P[n, s, :, a]), 1, abs_tol=1e-2):
-                    print(
-                        f"Arm {n}, State {s}, Action {a} is not stochastic summing to {np.sum(P[n, s, :, a])}"
-                    )
-                    return False
-    return True
+def set_seed(seed):
+    np.random.seed(seed)
 
 
 def load_arm(arm_name):
@@ -26,197 +20,67 @@ def load_arm(arm_name):
     return P, R
 
 
-def compute_ELP(delta, P_hat, budget, n_state, n_action, Reward, n_arms):
-    """
-    delta: delta_n(s,a) : n_arms*n_state*n_action
-    P_hat: P_hat_n(s'/s,a): n_arms* n_state*n_state*n_action
-    Reward: R_n(s): n_arms* n_state
-    budget: SCALAR
-    """
+def load_environment_configuration(cfg):
+    """Load transition kernels and reward matrix for each arm and shuffle arms (to prevent biases)."""
+    env_config = cfg.env_config
+    arm_prefix = env_config.arm
+    num_types = env_config.num_types
+    num_arms_per_type = env_config.num_arms_per_type
+    arm_constraint = env_config.arm_constraint
 
-    index_policy = np.zeros((n_arms, n_state, n_state, n_action))
-    opt_prob = p.LpProblem("ExtendedLP", p.LpMaximize)
-    idx_p_keys = [
-        (n, s, a, s_dash)
-        for n in range(n_arms)
-        for s in range(n_state)
-        for a in range(n_action)
-        for s_dash in range(n_state)
-    ]
-    w = p.LpVariable.dicts("w", idx_p_keys, lowBound=0, upBound=1, cat="continous")
+    P_list = []
+    R_list = []
+    for i in range(1, num_types + 1):
+        P, R = load_arm(f"{arm_prefix}_arm_type_{i}")
+        P_list.extend([P] * num_arms_per_type)
+        R_list.extend([R] * num_arms_per_type)
 
-    r = Reward.copy()
+    indices = list(range(len(P_list)))
+    random.seed(0)
+    random.shuffle(indices)
+    P_list = [P_list[i] for i in indices]
+    R_list = [R_list[i] for i in indices]
 
-    # objective equation
-    opt_prob += p.lpSum(
-        [
-            w[(n, s, a, s_dash)] * r[n][s]
-            for n in range(n_arms)
-            for s in range(n_state)
-            for a in range(n_action)
-            for s_dash in range(n_state)
-        ]
-    )
-    # list1 = [r[n][s] for n in range(n_arms) for s in range(n_state)]*self.
+    total_arms = num_types * num_arms_per_type
+    assert arm_constraint < total_arms, "arm_constraint not meaningful."
 
-    # Budget Constraint
-
-    opt_prob += (
-        p.lpSum(
-            [
-                w[(n, s, a, s_dash)] * a
-                for n in range(n_arms)
-                for s in range(n_state)
-                for a in range(n_action)
-                for s_dash in range(n_state)
-            ]
-        )
-        - budget
-        <= 0
-    )
-
-    for n in range(n_arms):
-        for s in range(n_state):
-            w_list = [
-                w[(n, s, a, s_dash)]
-                for a in range(n_action)
-                for s_dash in range(n_state)
-            ]
-            w_1_list = [
-                w[(n, s_dash, a_dash, s)]
-                for a_dash in range(n_action)
-                for s_dash in range(n_state)
-            ]
-            opt_prob += p.lpSum(w_list) - p.lpSum(w_1_list) == 0
-
-    for n in range(n_arms):
-
-        a_list = [
-            w[(n, s, a, s_dash)]
-            for s in range(n_state)
-            for a in range(n_action)
-            for s_dash in range(n_state)
-        ]
-        opt_prob += p.lpSum(a_list) - 1 == 0
-
-    # Extended part of the Linear Programming
-    for n in range(n_arms):
-        for s in range(n_state):
-            for a in range(n_action):
-                for s_dash in range(n_state):
-
-                    b_list = [w[(n, s, a, s_dash)] for s_dash in range(n_state)]
-                    opt_prob += (
-                        w[(n, s, a, s_dash)]
-                        - (P_hat[n][s][s_dash][a] + delta[n][s][a]) * p.lpSum(b_list)
-                        <= 0
-                    )
-
-                    opt_prob += (
-                        -1 * w[(n, s, a, s_dash)]
-                        + p.lpSum(b_list) * (P_hat[n][s][s_dash][a] - delta[n][s][a])
-                        <= 0
-                    )
-
-    status = opt_prob.solve(p.PULP_CBC_CMD(msg=0))
-    # status = opt_prob.solve(p.GUROBI(msg=0))
-    # status = opt_prob.solve(p.GLPK_CMD(msg=0))
-    if p.LpStatus[status] != "Optimal":
-        return None
-    # assert p.LpStatus[status] == "Optimal", "No feasible solution :("
-
-    for n in range(n_arms):
-        for s in range(n_state):
-            for a in range(n_action):
-                for s_dash in range(n_state):
-                    index_policy[n, s, s_dash, a] = w[(n, s, a, s_dash)].varValue
-
-                    if (index_policy[n, s, s_dash, a]) < 0 and index_policy[
-                        n, s, s_dash, a
-                    ] > -0.001:
-                        index_policy[n, s, s_dash, a] = 0
-                    elif index_policy[n, s, s_dash, a] < -0.001:
-                        print("Invalid Value")
-                        sys.exit()
-
-    return index_policy
+    return P_list, R_list, arm_constraint
 
 
-def compute_optimal(Reward, budget, P, n_arms, n_state, n_action):
+def initialize_environment(cfg, P_list, R_list, arm_constraint):
+    """Initialize the Pref-RMAB environment."""
+    env = MultiArmRestlessDuellingEnv(arm_constraint, P_list, R_list)
+    env.H = cfg.H
+    return env
 
-    optimal_policy = np.zeros((n_arms, n_state, n_action))
-    opt_prob = p.LpProblem("OptimalLP", p.LpMaximize)
-    p_keys = [
-        (n, s, a)
-        for n in range(n_arms)
-        for s in range(n_state)
-        for a in range(n_action)
-    ]
-    w = p.LpVariable.dicts("w", p_keys, lowBound=0, upBound=1, cat="continous")
 
-    r = {}
-    for n in range(n_arms):
-        r[n] = {}
+def save_results(results_dict, seeds):
+    """Save results to disk"""
+    results_dict = pd.DataFrame(results_dict)
+    hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
+    output_dir = hydra_cfg.runtime.output_dir
+    results_dict.to_csv(os.path.join(output_dir, f"results_{seeds}.csv"))
 
-        for state in range(n_state):
-            r[n][state] = Reward[n][state]
-    # objective function
-    opt_prob += p.lpSum(
-        [
-            w[(n, s, a)] * r[n][s]
-            for n in range(n_arms)
-            for s in range(n_state)
-            for a in range(n_action)
-        ]
-    )
-    # Budget Constraint
-    opt_prob += (
-        p.lpSum(
-            [
-                w[(n, s, a)] * a
-                for n in range(n_arms)
-                for s in range(n_state)
-                for a in range(n_action)
-            ]
-        )
-        - budget
-        <= 0
-    )
 
-    for n in range(n_arms):
-        w_list = [w[(n, s, a)] for s in range(n_state) for a in range(n_action)]
-        opt_prob += p.lpSum(w_list) - 1 == 0
+def load_results():
+    """Load results from disk for all seeds"""
+    hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
+    output_dir = hydra_cfg.runtime.output_dir
+    all_results = []
 
-    for n in range(n_arms):
-        for s in range(n_state):
-            for a in range(n_action):
-                opt_prob += w[(n, s, a)] >= 0
+    for filename in os.listdir(output_dir):
+        if filename.startswith("results_") and filename.endswith(".csv"):
+            file_path = os.path.join(output_dir, filename)
+            df = pd.read_csv(file_path)
+            all_results.append(df)
 
-    for n in range(n_arms):
-        for s in range(n_state):
-            a_list = [w[(n, s, a)] for a in range(n_action)]
-            b_list = [
-                w[(n, s_dash, a_dash)] * P[n][s_dash][s][a_dash]
-                for s_dash in range(n_state)
-                for a_dash in range(n_action)
-            ]
-            opt_prob += p.lpSum(a_list) - p.lpSum(b_list) == 0
+    if all_results:
+        return all_results
+    else:
+        raise FileNotFoundError("No results found in the output directory.")
 
-    status = opt_prob.solve(p.PULP_CBC_CMD(msg=0))
-    assert p.LpStatus[status] == "Optimal", "No feasible solution :("
 
-    for n in range(n_arms):
-        for s in range(n_state):
-            for a in range(n_action):
-                optimal_policy[n, s, a] = w[(n, s, a)].varValue
-                if (optimal_policy[n, s, a]) < 0 and optimal_policy[n, s, a] > -0.001:
-                    optimal_policy[n, s, a] = 0
-                elif optimal_policy[n, s, a] < -0.001:
-                    print("Invalid Value")
-                    sys.exit()
-
-    opt_value = p.value(opt_prob.objective)
-    return opt_value, optimal_policy
-
-def set_seed(seed):
-    np.random.seed(seed)
+def wandb_log_latest(metrics, step):
+    """Log metrics to wandb."""
+    for key, value in metrics.items():
+        wandb.log({key: value[-1]}, step=step)

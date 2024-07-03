@@ -5,18 +5,14 @@ defaults:
 
 num_seeds : 3
 reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
-assisted_P: False # Set this to true if you want to estimate only F and not P
 K : 100
 H : 50
 eps : 1e-5
-delta_coeff : ${eps}
-conf_coeff : ${eps}
-reference_strategy: "best" # or "random" or "fixed"
-enrich_F : True # Set this to true if you want to enrich F using lemma 4 in paper
-mle_method: "second_order" # or "first_order"
-mle_cumulative: False
+algos : ["dopl","mle_lp", "random", "oracle"] # "mle_lpql"]
 
-
+plotting:
+  window_size: 100
+  algo_colors: ["blue", "yellow", "red", "green"]
 
 env_config:
   arm: "toy"
@@ -24,4 +20,4 @@ env_config:
   num_arms_per_type: 10
   arm_constraint: 10
 exp:
-  name: toy_env_${mle_method}
+  name: toy_env_H_${H}_K_${K}
