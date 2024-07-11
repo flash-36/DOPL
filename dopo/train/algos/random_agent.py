@@ -5,6 +5,7 @@ from dopo.train.helpers import apply_index_policy
 import numpy as np
 
 
+
 @register_training_function("random")
 def train(env, cfg):
 

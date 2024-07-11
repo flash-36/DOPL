@@ -5,13 +5,14 @@ defaults:
 
 num_seeds : 2
 reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
-K : 10
-H : 1000
-beta : 0.1
-lr : 0.001
-nn_size: [16, 16]
-ref_update_freq: 5 
-algos : ["dpo", "random", "oracle"]
+K : 10000
+H : 100
+gamma: 0.99
+gae_lambda: 0.95
+clip_coeff: 0.2
+lr : 0.005
+nn_size: [32, 32]
+algos : ["mle_ppo", "random", "oracle"]
 
 plotting:
   window_size: 10 
@@ -20,7 +21,7 @@ plotting:
 env_config:
   arm: "cpap"
   num_types: 2
-  num_arms_per_type: 10
-  arm_constraint: 8
+  num_arms_per_type: 4
+  arm_constraint: 2
 exp:
   name: cpap_env

@@ -2,6 +2,8 @@ import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 from .restless_arm import RestlessArmEnv
+import math
+import itertools
 
 
 class MultiArmRestlessEnv(gym.Env):
@@ -24,6 +26,25 @@ class MultiArmRestlessEnv(gym.Env):
         self.arms = [RestlessArmEnv(P, R, initial_dist) for P, R in zip(P_list, R_list)]
         self.action_space = spaces.MultiDiscrete([R.shape[1] for R in R_list])
         self.observation_space = spaces.MultiDiscrete([R.shape[0] for R in R_list])
+        self.action_space_combinatorial = spaces.Discrete(
+            math.comb(len(self.arms), self.arm_constraint)
+        )
+        self.map_combinatorial_to_discrete = np.array(
+            list(itertools.combinations(range(len(self.arms)), self.arm_constraint))
+        )
+        self.map_combinatorial_to_binary = self.generate_binary_vectors()
+
+    def generate_binary_vectors(self):
+        # Initialize an array to hold the binary vectors
+        num_arms = len(self.arms)
+        binary_vectors = np.zeros(
+            (len(self.map_combinatorial_to_discrete), num_arms), dtype=int
+        )
+        # Convert each tuple of active arm indices to a binary vector
+        for index, combination in enumerate(self.map_combinatorial_to_discrete):
+            binary_vectors[index, list(combination)] = 1
+
+        return binary_vectors
 
     def step(self, action):
         assert sum(action) <= self.arm_constraint, "Action constraint on arms pulled"
@@ -44,3 +65,13 @@ class MultiArmRestlessEnv(gym.Env):
     def render(self, mode="human"):
         for i, arm in enumerate(self.arms):
             arm.render()
+
+
+if __name__ == "__main__":
+    P_list = [np.array([[0.9, 0.1], [0.1, 0.9]])] * 2
+    R_list = [np.array([[0.0, 1.0], [1.0, 0.0]])] * 2
+    env = MultiArmRestlessEnv(1, P_list, R_list)
+    print(env.action_space)
+    print(env.observation_space)
+    print(env.map_combinatorial_to_binary)
+    print(env.reset())

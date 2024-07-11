@@ -55,32 +55,6 @@ def initialize_environment(cfg, P_list, R_list, arm_constraint):
     return env
 
 
-# def save_results(results_dict, seeds):
-#     """Save results to disk"""
-#     results_dict = pd.DataFrame(results_dict)
-#     hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
-#     output_dir = hydra_cfg.runtime.output_dir
-#     results_dict.to_csv(os.path.join(output_dir, f"results_{seeds}.csv"))
-
-
-# def load_results():
-#     """Load results from disk for all seeds"""
-#     hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
-#     output_dir = hydra_cfg.runtime.output_dir
-#     all_results = []
-
-#     for filename in os.listdir(output_dir):
-#         if filename.startswith("results_") and filename.endswith(".csv"):
-#             file_path = os.path.join(output_dir, filename)
-#             df = pd.read_csv(file_path)
-#             all_results.append(df)
-
-#     if all_results:
-#         return all_results
-#     else:
-#         raise FileNotFoundError("No results found in the output directory.")
-
-
 def save_results(results_dict, seeds):
     hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
     output_dir = hydra_cfg.runtime.output_dir
@@ -107,5 +81,7 @@ def load_results():
 
 def wandb_log_latest(metrics, algo_name):
     """Log metrics to wandb."""
+    log_dict = {}
     for key, value in metrics.items():
-        wandb.log({f"{algo_name}_{key}": value[-1]})
+        log_dict[key] = value[-1]
+    wandb.log(log_dict)
