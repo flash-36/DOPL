@@ -5,3 +5,4 @@ from .mle_lp import train as mle_lp_train
 from .dpo import train as dpo_train
 from .mle_ppo import train as mle_ppo_train
 from .mle_wibql import train as mle_wibql_train
+from .mle_qwic import train as mle_qwic_train

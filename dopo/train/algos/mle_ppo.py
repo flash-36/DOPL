@@ -26,6 +26,9 @@ def train(env, cfg):
         len(env.map_combinatorial_to_binary),
     )
     optimizer = torch.optim.Adam(agent.parameters(), lr=lr, eps=1e-5)
+    scheduler = torch.optim.lr_scheduler.LinearLR(
+        optimizer, start_factor=1, end_factor=0.1, total_iters=K
+    )
 
     # Store traj data
     states = torch.zeros((env.H,) + env.observation_space.shape).to(device)
@@ -73,6 +76,7 @@ def train(env, cfg):
         loss = ppo_update(
             agent,
             optimizer,
+            scheduler,
             states,
             actions,
             logprobs,
@@ -94,6 +98,7 @@ def train(env, cfg):
 def ppo_update(
     agent,
     optimizer,
+    scheduler,
     states,
     actions,
     logprobs,
@@ -171,6 +176,7 @@ def ppo_update(
             loss.backward()
             nn.utils.clip_grad_norm_(agent.parameters(), 0.5)
             optimizer.step()
+            scheduler.step()
             loss_total += loss.item()
     return loss_total
 

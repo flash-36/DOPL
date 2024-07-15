@@ -5,12 +5,13 @@ defaults:
 
 num_seeds : 2
 reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
-K : 10
+K : 500
 H : 1000
-beta : 0.1
+beta_final : 0.1
+beta_decay : 0.01
 lr : 0.001
-nn_size: [16, 16]
-ref_update_freq: 5 
+nn_size: [32, 32]
+ref_update_freq: 10 
 algos : ["dpo", "random", "oracle"]
 
 plotting:

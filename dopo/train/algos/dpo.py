@@ -1,6 +1,7 @@
 import torch.nn.functional as F
 import torch
 from dopo.utils import initialize_policy_net
+from dopo.utils import ExponentialLR
 from tqdm import tqdm
 from dopo.utils import (
     wandb_log_latest,
@@ -16,7 +17,7 @@ log = logging.getLogger(__name__)
 def train(env, cfg):
     K = cfg["K"]
     ref_update_freq = cfg["ref_update_freq"]
-    beta = cfg["beta"]  # TODO: beta scheduler
+    beta_final = cfg["beta_final"]
     policy_net = initialize_policy_net(env, cfg)
     policy_net_ref = initialize_policy_net(env, cfg)
     metrics = {
@@ -24,6 +25,7 @@ def train(env, cfg):
         "dpo_loss": [],
     }
     optimizer = torch.optim.RMSprop(policy_net.parameters(), lr=cfg["lr"])
+    beta_scheduler = ExponentialLR(beta_final, cfg["beta_decay"])
     for k in tqdm(range(K)):
         # Start rollout using index policy
         if k % ref_update_freq == 0 and k != 0:
@@ -50,7 +52,7 @@ def train(env, cfg):
                 ref_log_ratio = torch.log(action_probs_ref[winner]) - torch.log(
                     action_probs_ref[loser]
                 )
-                loss_episode += -F.logsigmoid(beta * (pi_log_ratio - ref_log_ratio))
+                loss_episode += -F.logsigmoid(beta_scheduler.get_lr(k) * (pi_log_ratio - ref_log_ratio))
 
             s_list = s_dash_list
 

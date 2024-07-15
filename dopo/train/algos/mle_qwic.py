@@ -7,14 +7,7 @@ from dopo.train.algos.mle_lp import mle_bradley_terry
 from dopo.train.helpers import apply_index_policy
 
 
-def func(Q, num_states):
-    """input : Q dimensionality [ states, actions]
-    input : num_states scalar (d in Borkar paper)
-    output : func(Q) scalar"""
-    return 1 / (2 * num_states) * np.sum(Q)
-
-
-@register_training_function("mle_wibql")
+@register_training_function("mle_qwic")
 def train(env, cfg):
     K = cfg["K"]
     epsilon = cfg["epsilon"]
@@ -23,14 +16,14 @@ def train(env, cfg):
     num_arms = len(env.P_list)
     num_states = env.P_list[0].shape[0]
     num_actions = env.R_list[0].shape[1]
+    lambda_candidates = list(np.linspace(0, 1, num_arms * num_states))
 
     R_est = np.ones((num_arms, num_states)) * 0.5
     Q = -np.ones(
         (
-            num_arms,
+            len(lambda_candidates),
             num_states,
             num_actions,
-            num_states,
         )
     )
     W = np.zeros((num_arms, num_states))
@@ -72,23 +65,31 @@ def train(env, cfg):
         metrics["reward"].append(reward_episode)
         # Update R_est using Bradley-Terry model
         R_est = mle_bradley_terry(np.array(battle_data), R_est)
-        for arm in range(num_arms):
-            for state in range(num_states):  # k_hat in Borkar paper
-                # Update Q values based on traj data
-                for s, a, s_dash in zip(traj_states, traj_actions, traj_next_states):
-                    Q[arm, s[arm], a[arm], state] = Q[
-                        arm, s[arm], a[arm], state
-                    ] + 1 / (Z_sa[arm, s[arm], a[arm]]) * (
-                        (1 - a[arm]) * (R_est[arm, s[arm]] + W[arm, state])
-                        + a[arm] * R_est[arm, s[arm]]
-                        + np.max(Q[arm, s_dash[arm], :, state])
-                        - func(Q[arm, :, :, state], num_states)
-                        - Q[arm, s[arm], a[arm], state]
-                    )
-                # Update W value for state
-                W[arm, state] = W[arm, state] + (1 / sum(Z_sa[arm, state, :])) * (
-                    Q[arm, state, 1, state] - Q[arm, state, 0, state]
+        for s, a, s_dash in zip(traj_states, traj_actions, traj_next_states):
+            for arm in range(num_arms):
+                Q[lambda_candidates.index(W[arm, s[arm]]), s[arm], a[arm]] = (
+                    1 - 1 / Z_sa[arm, s[arm], a[arm]]
+                ) * Q[
+                    lambda_candidates.index(W[arm, s[arm]]), s[arm], a[arm]
+                ] + 1 / Z_sa[
+                    arm, s[arm], a[arm]
+                ] * (
+                    R_est[arm, s[arm]]
+                    - W[arm, s[arm]] * a[arm]
+                    + 0.99
+                    * np.max(Q[lambda_candidates.index(W[arm, s[arm]]), s_dash[arm], :])
                 )
+                for state in range(num_states):
+                    W[arm, state] = lambda_candidates[
+                        np.argmin(
+                            [
+                                Q[lambda_candidates.index(l), state, 1]
+                                - Q[lambda_candidates.index(l), state, 0]
+                                for l in lambda_candidates
+                            ]
+                        )
+                    ]
+
         metrics["R_error"].append(np.linalg.norm(R_est - R_true))
         wandb_log_latest(metrics, "mle_wibql")
     return metrics
