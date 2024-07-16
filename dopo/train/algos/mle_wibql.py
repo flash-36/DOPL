@@ -14,6 +14,19 @@ def func(Q, num_states):
     return 1 / (2 * num_states) * np.sum(Q)
 
 
+def a_seq(n):
+    n += 1
+    C = 100
+    return C / np.ceil(n / 500)
+
+
+def b_seq(n):
+    n += 1
+    C_dash = 100
+    N = 2
+    return C_dash / (1 + np.ceil(n * np.log(n) / 500)) if n % N == 0 else 0
+
+
 @register_training_function("mle_wibql")
 def train(env, cfg):
     K = cfg["K"]
@@ -25,13 +38,11 @@ def train(env, cfg):
     num_actions = env.R_list[0].shape[1]
 
     R_est = np.ones((num_arms, num_states)) * 0.5
-    Q = -np.ones(
-        (
-            num_arms,
-            num_states,
-            num_actions,
-            num_states,
-        )
+    Q = np.random.rand(
+        num_arms,
+        num_states,
+        num_actions,
+        num_states,
     )
     W = np.zeros((num_arms, num_states))
     Z_sa = np.zeros((num_arms, num_states, num_actions))
@@ -78,7 +89,7 @@ def train(env, cfg):
                 for s, a, s_dash in zip(traj_states, traj_actions, traj_next_states):
                     Q[arm, s[arm], a[arm], state] = Q[
                         arm, s[arm], a[arm], state
-                    ] + 1 / (Z_sa[arm, s[arm], a[arm]]) * (
+                    ] + a_seq(Z_sa[arm, s[arm], a[arm]]) * (
                         (1 - a[arm]) * (R_est[arm, s[arm]] + W[arm, state])
                         + a[arm] * R_est[arm, s[arm]]
                         + np.max(Q[arm, s_dash[arm], :, state])
@@ -86,8 +97,8 @@ def train(env, cfg):
                         - Q[arm, s[arm], a[arm], state]
                     )
                 # Update W value for state
-                W[arm, state] = W[arm, state] + (1 / sum(Z_sa[arm, state, :])) * (
-                    Q[arm, state, 1, state] - Q[arm, state, 0, state]
+                W[arm, state] = W[arm, state] + (b_seq(k)) * (
+                    np.abs(Q[arm, state, 1, state] - Q[arm, state, 0, state])
                 )
         metrics["R_error"].append(np.linalg.norm(R_est - R_true))
         wandb_log_latest(metrics, "mle_wibql")

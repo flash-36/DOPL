@@ -19,12 +19,10 @@ def train(env, cfg):
     lambda_candidates = list(np.linspace(0, 1, num_arms * num_states))
 
     R_est = np.ones((num_arms, num_states)) * 0.5
-    Q = -np.ones(
-        (
-            len(lambda_candidates),
-            num_states,
-            num_actions,
-        )
+    Q = np.random.rand(
+        len(lambda_candidates),
+        num_states,
+        num_actions,
     )
     W = np.zeros((num_arms, num_states))
     Z_sa = np.zeros((num_arms, num_states, num_actions))
@@ -83,8 +81,10 @@ def train(env, cfg):
                     W[arm, state] = lambda_candidates[
                         np.argmin(
                             [
-                                Q[lambda_candidates.index(l), state, 1]
-                                - Q[lambda_candidates.index(l), state, 0]
+                                np.abs(
+                                    Q[lambda_candidates.index(l), state, 1]
+                                    - Q[lambda_candidates.index(l), state, 0]
+                                )
                                 for l in lambda_candidates
                             ]
                         )
