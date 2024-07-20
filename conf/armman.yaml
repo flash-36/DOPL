@@ -1,23 +1,22 @@
 defaults:
   - override hydra/launcher: joblib
   - _self_
-
+  
 
 num_seeds : 3
 reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
-K : 6500
+K : 2000
 H : 5
+epsilon: 0.1
 eps : 1e-5
-algos : ["dopl","mle_lp", "random", "oracle"]
-
+algos : [ "random", "mle_wibql" ,"mle_qwic" , "mle_lp", "dopl",  "oracle"]
 plotting:
-  window_size: 100
-  algo_colors: ["blue", "yellow", "red", "green"]
-
+  window_size: 50
+  algo_colors: ["black", "purple", "orange", "blue", "red", "green"]
 env_config:
   arm: "armman"
   num_types: 10
   num_arms_per_type: 2
   arm_constraint: 10
 exp:
-  name: armman_env
+  name: armman

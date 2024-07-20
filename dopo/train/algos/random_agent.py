@@ -5,7 +5,6 @@ from dopo.train.helpers import apply_index_policy
 import numpy as np
 
 
-
 @register_training_function("random")
 def train(env, cfg):
 
@@ -29,5 +28,5 @@ def train(env, cfg):
             reward_episode += reward
             s_list = s_dash_list
         metrics["reward"].append(reward_episode)
-        wandb_log_latest(metrics, "random")
+        wandb_log_latest(metrics)
     return metrics

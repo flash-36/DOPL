@@ -63,9 +63,10 @@ def save_results(results_dict, seeds):
         json.dump(results_dict, json_file, indent=4)
 
 
-def load_results():
-    hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
-    output_dir = hydra_cfg.runtime.output_dir
+def load_results(output_dir=None):
+    if output_dir is None:
+        hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
+        output_dir = hydra_cfg.runtime.output_dir
     all_results = []
     for filename in os.listdir(output_dir):
         if filename.startswith("results_") and filename.endswith(".json"):
@@ -79,7 +80,7 @@ def load_results():
         raise FileNotFoundError("No results found in the output directory.")
 
 
-def wandb_log_latest(metrics, algo_name):
+def wandb_log_latest(metrics):
     """Log metrics to wandb."""
     log_dict = {}
     for key, value in metrics.items():

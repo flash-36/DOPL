@@ -14,14 +14,14 @@ algos : ["dopl", "mle_lp" ,"mle_qwic" ,"mle_wibql" , "random" , "oracle"]
 
 plotting:
   window_size: 50
-  algo_colors: ["black", "brown", "blue","orange","red","green"]
+  algo_colors: ["blue", "black", "brown", "orange", "red", "green"]
 
 
 env_config:
   arm: "two_process"
   num_types: 2
-  num_arms_per_type: 2
-  arm_constraint: 2
+  num_arms_per_type: 6
+  arm_constraint: 6
 exp:
   name: two_process
 

@@ -63,6 +63,6 @@ def train(env, cfg):
         metrics["reward"].append(reward_episode)
         metrics["dpo_loss"].append(loss_episode.item())
 
-        wandb_log_latest(metrics, "dpo")
+        wandb_log_latest(metrics)
 
     return metrics

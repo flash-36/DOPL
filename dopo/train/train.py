@@ -2,7 +2,7 @@ from dopo.registry import TRAINING_FUNCTIONS
 import logging
 import wandb
 from dopo.utils import set_seed, save_results
-
+import numpy as np
 
 log = logging.getLogger(__name__)
 

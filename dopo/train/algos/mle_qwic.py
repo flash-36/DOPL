@@ -10,7 +10,6 @@ from dopo.train.helpers import apply_index_policy
 @register_training_function("mle_qwic")
 def train(env, cfg):
     K = cfg["K"]
-    epsilon = cfg["epsilon"]
     R_true = np.array(env.R_list)[:, :, 0]
 
     num_arms = len(env.P_list)
@@ -19,15 +18,17 @@ def train(env, cfg):
     lambda_candidates = list(np.linspace(0, 1, num_arms * num_states))
 
     R_est = np.ones((num_arms, num_states)) * 0.5
-    Q = np.random.rand(
-        len(lambda_candidates),
-        num_states,
-        num_actions,
+    Q = np.zeros(
+        (
+            len(lambda_candidates),
+            num_states,
+            num_actions,
+        )
     )
+    Q[:, :, 1] = 1
     W = np.zeros((num_arms, num_states))
-    Z_sa = np.zeros((num_arms, num_states, num_actions))
 
-    metrics = {"reward": [], "R_error": []}
+    metrics = {"reward": [], "index_error": [],"R_error": []}
 
     for k in tqdm(range(K)):
         # Start rollout using Q values as policy
@@ -37,8 +38,9 @@ def train(env, cfg):
         traj_next_states = []
         s_list = env.reset()
         reward_episode = 0
+        gamma_t = min(1, 2 / np.sqrt(k))
         for t in range(env.H):
-            if np.random.rand() < epsilon:
+            if np.random.rand() < gamma_t:
                 action = apply_index_policy(
                     s_list, np.random.rand(num_arms, num_states), env.arm_constraint
                 )
@@ -49,10 +51,6 @@ def train(env, cfg):
             traj_states.append(s_list)
             traj_actions.append(action)
             traj_next_states.append(s_dash_list)
-            for arm_id, s, a, s_dash in zip(
-                range(num_arms), s_list, action, s_dash_list
-            ):
-                Z_sa[arm_id, s, a] += 1
             for record in info["duelling_results"]:
                 winner, loser = record
                 battle_data.append(
@@ -66,12 +64,12 @@ def train(env, cfg):
         for s, a, s_dash in zip(traj_states, traj_actions, traj_next_states):
             for arm in range(num_arms):
                 Q[lambda_candidates.index(W[arm, s[arm]]), s[arm], a[arm]] = (
-                    1 - 1 / Z_sa[arm, s[arm], a[arm]]
+                    1 - 1 / np.sqrt(k)
                 ) * Q[
                     lambda_candidates.index(W[arm, s[arm]]), s[arm], a[arm]
-                ] + 1 / Z_sa[
-                    arm, s[arm], a[arm]
-                ] * (
+                ] + 1 / np.sqrt(
+                    k
+                ) * (
                     R_est[arm, s[arm]]
                     - W[arm, s[arm]] * a[arm]
                     + 0.99
@@ -91,5 +89,6 @@ def train(env, cfg):
                     ]
 
         metrics["R_error"].append(np.linalg.norm(R_est - R_true))
-        wandb_log_latest(metrics, "mle_wibql")
+        metrics["index_error"].append(np.linalg.norm(W - env.opt_index))
+        wandb_log_latest(metrics)
     return metrics

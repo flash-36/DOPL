@@ -29,6 +29,8 @@ class PPOAgent(nn.Module):
             in_size = h_size
         layers.append(layer_init(nn.Linear(in_size, output_size), std=0.01))
         self.actor = nn.Sequential(*layers)
+        print(self.actor)
+        print(self.critic)
 
     def get_value(self, x):
         return self.critic(x)

@@ -2,7 +2,6 @@ from tqdm import tqdm
 import numpy as np
 from dopo.utils import wandb_log_latest
 from dopo.registry import register_training_function
-import torch
 from dopo.train.algos.mle_lp import mle_bradley_terry
 from dopo.train.helpers import apply_index_policy
 
@@ -38,16 +37,19 @@ def train(env, cfg):
     num_actions = env.R_list[0].shape[1]
 
     R_est = np.ones((num_arms, num_states)) * 0.5
-    Q = np.random.rand(
-        num_arms,
-        num_states,
-        num_actions,
-        num_states,
+    Q = np.zeros(
+        (
+            num_arms,
+            num_states,
+            num_actions,
+            num_states,
+        )
     )
+    Q[:, :, 1, :] = 1
     W = np.zeros((num_arms, num_states))
     Z_sa = np.zeros((num_arms, num_states, num_actions))
 
-    metrics = {"reward": [], "R_error": []}
+    metrics = {"reward": [],  "index_error": [], "R_error": []}
 
     for k in tqdm(range(K)):
         # Start rollout using Q values as policy
@@ -98,8 +100,9 @@ def train(env, cfg):
                     )
                 # Update W value for state
                 W[arm, state] = W[arm, state] + (b_seq(k)) * (
-                    np.abs(Q[arm, state, 1, state] - Q[arm, state, 0, state])
+                    Q[arm, state, 1, state] - Q[arm, state, 0, state]
                 )
         metrics["R_error"].append(np.linalg.norm(R_est - R_true))
-        wandb_log_latest(metrics, "mle_wibql")
+        metrics["index_error"].append(np.linalg.norm(W - env.opt_index))
+        wandb_log_latest(metrics)
     return metrics

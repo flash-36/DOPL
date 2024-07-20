@@ -24,7 +24,7 @@ def train(env, cfg):
         len(env.observation_space.nvec),
         cfg["nn_size"],
         len(env.map_combinatorial_to_binary),
-    )
+    ).to(device)
     optimizer = torch.optim.Adam(agent.parameters(), lr=lr, eps=1e-5)
     scheduler = torch.optim.lr_scheduler.LinearLR(
         optimizer, start_factor=1, end_factor=0.1, total_iters=K
@@ -49,7 +49,7 @@ def train(env, cfg):
         reward_episode = 0
         for t in range(env.H):
             with torch.no_grad():
-                s = torch.tensor(s_list, dtype=torch.float32)
+                s = torch.tensor(s_list, dtype=torch.float32).to(device)
                 action, log_prob, _, value = agent.get_action_and_value(s)
             s_list, reward, _, _, info = env.step(
                 env.map_combinatorial_to_binary[action.item()]
@@ -68,11 +68,7 @@ def train(env, cfg):
 
         R_est = mle_bradley_terry(np.array(battle_data), R_est)
         for t in range(env.H):
-            rewards[t] = sum(
-                R_est[
-                    np.arange(len(states[t].long().numpy())), states[t].long().numpy()
-                ]
-            )
+            rewards[t] = sum(R_est[np.arange(num_arms), states[t].long().cpu().numpy()])
         loss = ppo_update(
             agent,
             optimizer,
@@ -91,7 +87,7 @@ def train(env, cfg):
         metrics["R_error"].append(np.linalg.norm(R_est - R_true))
         metrics["reward"].append(reward_episode)
         metrics["loss"].append(loss)
-        wandb_log_latest(metrics, "mle_ppo")
+        wandb_log_latest(metrics)
     return metrics
 
 

@@ -7,20 +7,16 @@ num_seeds : 2
 reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
 K : 500
 H : 100
-gamma: 0.99
-gae_lambda: 0.95
-clip_coeff: 0.2
-lr : 0.1
-nn_size: [64,64]
-algos : ["mle_ppo", "random", "oracle"]
+epsilon: 0.1
+algos : ["mle_qwic", "random", "oracle"]
 
 plotting:
   window_size: 10 
   algo_colors: ["blue", "red", "green"]
 
 env_config:
-  arm: "cpap"
-  num_types: 2
+  arm: "deadline"
+  num_types: 1
   num_arms_per_type: 10
   arm_constraint: 8
 exp:

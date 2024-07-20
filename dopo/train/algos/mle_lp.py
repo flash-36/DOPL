@@ -88,7 +88,7 @@ def train(env, cfg):
         R_est = mle_bradley_terry(np.array(battle_data), R_est)
         metrics["reward"].append(reward_episode)
 
-        wandb_log_latest(metrics, "mle_lp")
+        wandb_log_latest(metrics)
 
     return metrics
 

@@ -26,7 +26,7 @@ def train(env, cfg):
     num_actions = env.R_list[0].shape[1]
 
     # battle_data = []
-    W = np.zeros((num_arms, num_states, num_arms, num_states))
+    Wins = np.zeros((num_arms, num_states, num_arms, num_states))
     P_hat = np.ones((num_arms, num_states, num_states, num_actions)) / num_states
 
     Z_sa = np.zeros((num_arms, num_states, num_actions))
@@ -59,7 +59,7 @@ def train(env, cfg):
     for k in tqdm(range(K)):
 
         # Enrich F estimate
-        ref_arm, ref_state = pick_best_ref(W)
+        ref_arm, ref_state = pick_best_ref(Wins)
         F_tilde, F_hat = enrich_F(F_tilde, F_hat, (ref_arm, ref_state), conf)
         if cfg.reward_normalized:
             F_tilde = np.clip(F_tilde, 1 / (np.e + 1), np.e / (np.e + 1))
@@ -121,13 +121,13 @@ def train(env, cfg):
             # Update F_estimate
             for record in info["duelling_results"]:
                 winner, loser = record
-                W[winner, s_list[winner], loser, s_list[loser]] += 1
+                Wins[winner, s_list[winner], loser, s_list[loser]] += 1
                 battle_count = (
-                    W[winner, s_list[winner], loser, s_list[loser]]
-                    + W[loser, s_list[loser], winner, s_list[winner]]
+                    Wins[winner, s_list[winner], loser, s_list[loser]]
+                    + Wins[loser, s_list[loser], winner, s_list[winner]]
                 )
                 F_hat[winner, s_list[winner], loser, s_list[loser]] = (
-                    W[winner, s_list[winner], loser, s_list[loser]] / battle_count
+                    Wins[winner, s_list[winner], loser, s_list[loser]] / battle_count
                 )
                 F_hat[loser, s_list[loser], winner, s_list[winner]] = (
                     1 - F_hat[winner, s_list[winner], loser, s_list[loser]]
@@ -161,6 +161,6 @@ def train(env, cfg):
 
         metrics["reward"].append(reward_episode)
 
-        wandb_log_latest(metrics, "dopl")
+        wandb_log_latest(metrics)
 
     return metrics
