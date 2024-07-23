@@ -1,6 +1,6 @@
 from tqdm import tqdm
 import numpy as np
-from dopo.utils import wandb_log_latest
+from dopo.utils import wandb_log_latest, normalize_matrix
 from dopo.registry import register_training_function
 from dopo.train.algos.mle_lp import mle_bradley_terry
 from dopo.train.helpers import apply_index_policy
@@ -15,15 +15,15 @@ def func(Q, num_states):
 
 def a_seq(n):
     n += 1
-    C = 100
-    return C / np.ceil(n / 500)
+    C = 1
+    return C / np.ceil(n / 10)
 
 
 def b_seq(n):
     n += 1
-    C_dash = 100
+    C_dash = 1
     N = 2
-    return C_dash / (1 + np.ceil(n * np.log(n) / 500)) if n % N == 0 else 0
+    return C_dash / (1 + np.ceil(n * np.log(n) / 800)) if n % N == 0 else 0
 
 
 @register_training_function("mle_wibql")
@@ -37,19 +37,16 @@ def train(env, cfg):
     num_actions = env.R_list[0].shape[1]
 
     R_est = np.ones((num_arms, num_states)) * 0.5
-    Q = np.zeros(
-        (
-            num_arms,
-            num_states,
-            num_actions,
-            num_states,
-        )
+    Q = np.random.rand(
+        num_arms,
+        num_states,
+        num_actions,
+        num_states,
     )
-    Q[:, :, 1, :] = 1
-    W = np.zeros((num_arms, num_states))
+    W = np.random.rand(num_arms, num_states)
     Z_sa = np.zeros((num_arms, num_states, num_actions))
 
-    metrics = {"reward": [],  "index_error": [], "R_error": []}
+    metrics = {"reward": [], "index_error": [], "R_error": []}
 
     for k in tqdm(range(K)):
         # Start rollout using Q values as policy
@@ -104,5 +101,9 @@ def train(env, cfg):
                 )
         metrics["R_error"].append(np.linalg.norm(R_est - R_true))
         metrics["index_error"].append(np.linalg.norm(W - env.opt_index))
+        if k % 50 == 0:
+            print(f"True index: {env.opt_index}")
+            print(f"Estimated index: {W}")
         wandb_log_latest(metrics)
+    print(f"leanrt index: {W}")
     return metrics

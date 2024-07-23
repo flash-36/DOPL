@@ -86,3 +86,7 @@ def wandb_log_latest(metrics):
     for key, value in metrics.items():
         log_dict[key] = value[-1]
     wandb.log(log_dict)
+
+def normalize_matrix(matrix):
+    """Normalize matrix to have entries between zero and one."""
+    return (matrix - matrix.min()) / (matrix.max() - matrix.min())

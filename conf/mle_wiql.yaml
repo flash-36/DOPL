@@ -3,20 +3,20 @@ defaults:
   - _self_
 
 
-num_seeds : 3
+num_seeds : 1
 reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
-K : 6000
+K : 500
 H : 100
-epsilon: 0.1
-eps : 1e-5
-algos : [ "random", "mle_wibql" ,"mle_qwic" , "mle_lp", "dopl",  "oracle"]
+algos : ["mle_wiql",  "random", "oracle"]
+
 plotting:
-  window_size: 20
-  algo_colors: ["black", "purple", "orange", "blue", "red", "green"]
+  window_size: 10 
+  algo_colors: ["blue", "red", "green"]
+
 env_config:
   arm: "cpap"
   num_types: 2
   num_arms_per_type: 10
   arm_constraint: 8
 exp:
-  name: cpap
+  name: cpap_env

@@ -1,40 +1,15 @@
 from tqdm import tqdm
 import numpy as np
-from dopo.utils import wandb_log_latest, normalize_matrix
+from dopo.utils import wandb_log_latest
 from dopo.registry import register_training_function
+import torch
 from dopo.train.algos.mle_lp import mle_bradley_terry
-from dopo.train.helpers import (
-    apply_index_policy,
-    compute_F_true,
-    enrich_F,
-    pick_best_ref,
-)
+from dopo.train.helpers import apply_index_policy, compute_F_true, pick_best_ref, enrich_F
 
 
-def func(Q, num_states):
-    """input : Q dimensionality [ states, actions]
-    input : num_states scalar (d in Borkar paper)
-    output : func(Q) scalar"""
-    return 1 / (2 * num_states) * np.sum(Q)
-
-
-def a_seq(n):
-    n += 1
-    C = 1
-    return C / np.ceil(n / 2500)
-
-
-def b_seq(n):
-    n += 1
-    C_dash = 1
-    N = 2
-    return C_dash / (1 + np.ceil(n * np.log(n) / 25)) if n % N == 0 else 0
-
-
-@register_training_function("direct_wibql")
+@register_training_function("direct_qwic")
 def train(env, cfg):
     K = cfg["K"]
-    epsilon = cfg["epsilon"]
     eps = cfg["eps"]
     R_true = np.array(env.R_list)[:, :, 0]
     F_true = compute_F_true(env)
@@ -42,14 +17,16 @@ def train(env, cfg):
     num_arms = len(env.P_list)
     num_states = env.P_list[0].shape[0]
     num_actions = env.R_list[0].shape[1]
+    lambda_candidates = list(np.linspace(-1, 1, num_arms * num_states))
 
+    R_est = np.ones((num_arms, num_states)) * 0.5
     Q = np.random.rand(
         num_arms,
+        len(lambda_candidates),
         num_states,
         num_actions,
-        num_states,
     )
-    W = np.random.rand(num_arms, num_states)
+    W = np.random.choice(lambda_candidates, size=(num_arms, num_states))
     Wins = np.zeros((num_arms, num_states, num_arms, num_states))
     Z_sa = np.zeros((num_arms, num_states, num_actions))
     F_tilde = np.ones((num_arms, num_states, num_arms, num_states)) * (
@@ -66,17 +43,20 @@ def train(env, cfg):
             conf[arm, state, arm, state] = 0.0
             F_tilde[arm, state, arm, state] = 0.5
 
-    metrics = {"reward": [], "F_error": [], "R_error": [], "index_error": []}
-
+    metrics = {"reward": [], "index_error": [], "R_error": [], "F_error": []}
+    global_step = 0
     for k in tqdm(range(K)):
         # Start rollout using Q values as policy
+        battle_data = []
         traj_states = []
         traj_actions = []
         traj_next_states = []
         s_list = env.reset()
         reward_episode = 0
         for t in range(env.H):
-            if np.random.rand() < epsilon:
+            global_step += 1
+            gamma_t = min(1, 2 / np.sqrt(global_step))
+            if np.random.rand() < gamma_t:
                 action = apply_index_policy(
                     s_list, np.random.rand(num_arms, num_states), env.arm_constraint
                 )
@@ -132,7 +112,6 @@ def train(env, cfg):
             s_list = s_dash_list
 
         metrics["reward"].append(reward_episode)
-
         # Get R_est using F_tilde
         ref_arm, ref_state = pick_best_ref(Wins)
         F_tilde, F_hat = enrich_F(F_tilde, F_hat, (ref_arm, ref_state), conf)
@@ -147,30 +126,38 @@ def train(env, cfg):
         R_est = np.log(
             F_tilde[:, :, ref_arm, ref_state] / (1 - F_tilde[:, :, ref_arm, ref_state])
         )
-
-        for arm in range(num_arms):
-            for state in range(num_states):  # k_hat in Borkar paper
-                # Update Q values based on traj data
-                for s, a, s_dash in zip(traj_states, traj_actions, traj_next_states):
-                    Q[arm, s[arm], a[arm], state] = Q[
-                        arm, s[arm], a[arm], state
-                    ] + a_seq(Z_sa[arm, s[arm], a[arm]]) * (
-                        (1 - a[arm]) * (R_est[arm, s[arm]] + W[arm, state])
-                        + a[arm] * R_est[arm, s[arm]]
-                        + np.max(Q[arm, s_dash[arm], :, state])
-                        - func(Q[arm, :, :, state], num_states)
-                        - Q[arm, s[arm], a[arm], state]
+        for s, a, s_dash in zip(traj_states, traj_actions, traj_next_states):
+            for arm in range(num_arms):
+                Q[arm, lambda_candidates.index(W[arm, s[arm]]), s[arm], a[arm]] = (
+                    1 - 1 / (global_step)
+                ) * Q[
+                    arm, lambda_candidates.index(W[arm, s[arm]]), s[arm], a[arm]
+                ] + 1 / (
+                    global_step
+                ) * (
+                    R_est[arm, s[arm]]
+                    - W[arm, s[arm]] * a[arm]
+                    + 0.99
+                    * np.max(
+                        Q[arm, lambda_candidates.index(W[arm, s[arm]]), s_dash[arm], :]
                     )
-                # Update W value for state
-                W[arm, state] = W[arm, state] + (b_seq(k)) * (
-                    Q[arm, state, 1, state] - Q[arm, state, 0, state]
                 )
+                for state in range(num_states):
+                    W[arm, state] = lambda_candidates[
+                        np.argmin(
+                            [
+                                np.abs(
+                                    Q[arm, lambda_candidates.index(l), state, 1]
+                                    - Q[arm, lambda_candidates.index(l), state, 0]
+                                )
+                                for l in lambda_candidates
+                            ]
+                        )
+                    ]
+
         metrics["R_error"].append(np.linalg.norm(R_est - R_true))
+        metrics["index_error"].append(np.linalg.norm(W - env.opt_index))
         metrics["F_error"].append(np.linalg.norm(F_tilde - F_true))
-        metrics["index_error"].append(np.linalg.norm(W - F_true))
-        if k % 50 == 0:
-            print(f"True index: {env.opt_index}")
-            print(f"Estimated index: {W}")
         wandb_log_latest(metrics)
     print(f"leanrt index: {W}")
     return metrics

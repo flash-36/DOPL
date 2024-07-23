@@ -52,7 +52,7 @@ def train(env, cfg):
         "index_error": [],
         "F_error": [],
         "P_error": [],
-        "Q_error": [],
+        "R_error": [],
     }
 
     W_sas = None
@@ -91,7 +91,7 @@ def train(env, cfg):
         Q_true = np.log(
             F_true[:, :, ref_arm, ref_state] / (1 - F_true[:, :, ref_arm, ref_state])
         )
-        metrics["Q_error"].append(np.linalg.norm(Q_n_s - Q_true))
+        metrics["R_error"].append(np.linalg.norm(Q_n_s - Q_true))
         metrics["index_error"].append(np.linalg.norm(index_matrix - env.opt_index))
         metrics["F_error"].append(np.linalg.norm(F_hat - F_true))
         metrics["P_error"].append(np.linalg.norm(P_hat - P_true))

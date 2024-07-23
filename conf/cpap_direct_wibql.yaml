@@ -9,11 +9,11 @@ K : 500
 H : 100
 epsilon: 0.1
 eps : 1e-5
-algos : ["direct_wibql", "random", "oracle"]
+algos : ["dopl", "direct_wibql", "random", "oracle"]
 
 plotting:
   window_size: 10 
-  algo_colors: ["blue", "red", "green"]
+  algo_colors: ["black","blue", "red", "green"]
 
 env_config:
   arm: "cpap"

@@ -5,7 +5,7 @@ defaults:
 
 num_seeds : 3
 reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
-K : 2000
+K : 20000
 H : 5
 epsilon: 0.1
 eps : 1e-5
