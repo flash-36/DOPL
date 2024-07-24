@@ -1,1 +1,1 @@
-from .plot import plot_training_performance, plot_reconstruction_loss
+from .plot import plot_training_performance, plot_dopl_estimation_errors

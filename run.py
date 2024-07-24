@@ -8,7 +8,7 @@ from dopo.utils import (
 from dopo.train import get_opt_performance, train
 from dopo.plot import (
     plot_training_performance,
-    plot_reconstruction_loss,
+    plot_dopl_estimation_errors,
 )
 import warnings
 import logging
@@ -29,7 +29,7 @@ def main(cfg: DictConfig):
 
     # Plot results
     plot_training_performance(cfg)
-    plot_reconstruction_loss(cfg)
+    plot_dopl_estimation_errors(cfg)
 
 
 if __name__ == "__main__":

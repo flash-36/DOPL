@@ -99,5 +99,4 @@ def train(env, cfg):
         metrics["R_error"].append(np.linalg.norm(R_est - R_true))
         metrics["index_error"].append(np.linalg.norm(W - env.opt_index))
         wandb_log_latest(metrics)
-    print(f"leanrt index: {W}")
     return metrics

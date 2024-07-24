@@ -35,7 +35,6 @@ def train(env, cfg):
     }
 
     W_sas = None
-    battle_data = []
     for k in tqdm(range(K)):
 
         # LP solve using R_est to get index policy
@@ -59,7 +58,7 @@ def train(env, cfg):
         metrics["R_error"].append(np.linalg.norm(R_est - R_true))
 
         # Start rollout using index policy
-        # battle_data = []
+        battle_data = []
         s_list = env.reset()
         reward_episode = 0
         for t in range(env.H):

@@ -159,5 +159,4 @@ def train(env, cfg):
         metrics["index_error"].append(np.linalg.norm(W - env.opt_index))
         metrics["F_error"].append(np.linalg.norm(F_tilde - F_true))
         wandb_log_latest(metrics)
-    print(f"leanrt index: {W}")
     return metrics

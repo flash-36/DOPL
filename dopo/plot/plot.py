@@ -5,6 +5,14 @@ import os
 import pandas as pd
 from dopo.utils import load_results
 
+# Set larger font sizes for the plot
+plt.rcParams.update({"axes.titlesize": 36})
+plt.rcParams.update({"axes.labelsize": 36})
+plt.rcParams.update({"xtick.labelsize": 32})
+plt.rcParams.update({"ytick.labelsize": 32})
+plt.rcParams.update({"legend.fontsize": 38})
+plt.rcParams.update({"figure.titlesize": 52})
+
 
 def plot_training_performance(cfg):
     window_size = cfg["plotting"]["window_size"]
@@ -104,7 +112,7 @@ def plot_training_performance(cfg):
         handles,
         labels,
         loc="upper center",
-        ncol=4,
+        ncol=len(handles),
         bbox_to_anchor=(0.5, -0.0),
         fontsize=44,
     )
@@ -120,5 +128,81 @@ def plot_training_performance(cfg):
     plt.close(fig)
 
 
-def plot_reconstruction_loss(cfg):
-    pass  # TODO
+def plot_dopl_estimation_errors(cfg):
+    window_size = cfg["plotting"]["window_size"]
+    colors = cfg["plotting"]["algo_colors"]
+    algos = cfg["algos"]
+    color_map = {algo: color for algo, color in zip(algos, colors)}
+    results_dicts = load_results()
+    # Plot estimation_errors of DOPL algorithm
+    fig, ax = plt.subplots(figsize=(15, 10))
+    plotted_keys = set()
+    for results_dict in results_dicts:
+        if "dopl" in results_dict:
+            dopl_results = results_dict["dopl"]
+            error_keys = [key for key in dopl_results if key.endswith("_error")]
+
+            for error_key in error_keys:
+                if error_key not in plotted_keys:
+                    errors = [
+                        list(results_dict["dopl"][error_key])
+                        for results_dict in results_dicts
+                    ]
+                    mean_error = np.mean(errors, axis=0)
+                    std_error = np.std(errors, axis=0)
+                    # Apply moving average for smoothing
+                    mean_curve = (
+                        pd.Series(mean_error)
+                        .rolling(window=window_size, min_periods=1)
+                        .mean()
+                    )
+                    std_curve = (
+                        pd.Series(std_error)
+                        .rolling(window=window_size, min_periods=1)
+                        .mean()
+                    )
+
+                    # Convert to float explicitly and to numpy arrays
+                    mean_curve = np.array(mean_curve.astype(float))
+                    std_curve = np.array(std_curve.astype(float))
+
+                    x_values = range(len(mean_curve))
+                    ax.plot(
+                        x_values,
+                        mean_curve,
+                        label=f"{error_key}",
+                    )
+                    ax.fill_between(
+                        x_values,
+                        mean_curve - std_curve,
+                        mean_curve + std_curve,
+                        alpha=0.2,
+                    )
+                    plotted_keys.add(error_key)
+        else:
+            return
+
+    ax.set_xlabel("Episodes")
+    ax.set_ylabel("Estimation Error")
+
+    # Adding a single legend above the plot
+    handles, labels = ax.get_legend_handles_labels()
+    legend = fig.legend(
+        handles,
+        labels,
+        loc="lower center",
+        ncol=len(handles),
+        bbox_to_anchor=(0.5, -0.0),
+    )
+
+    plt.tight_layout(rect=[0, 0, 1, 1])
+    hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
+    output_dir = hydra_cfg.runtime.output_dir
+    plt.savefig(
+        os.path.join(
+            output_dir, f"dopl_estimation_errors_{cfg['env_config']['arm']}.pdf"
+        ),
+        bbox_extra_artists=(legend,),
+        bbox_inches="tight",
+    )
+    plt.close(fig)

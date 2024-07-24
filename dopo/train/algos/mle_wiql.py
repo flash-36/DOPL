@@ -82,9 +82,5 @@ def train(env, cfg):
                 W[arm, s[arm]] = Q[arm, s[arm], 1] - Q[arm, s[arm], 0]
         metrics["R_error"].append(np.linalg.norm(R_est - R_true))
         metrics["index_error"].append(np.linalg.norm(W - env.opt_index))
-        if k % 50 == 0:
-            print(f"True index: {env.opt_index}")
-            print(f"Estimated index: {W}")
         wandb_log_latest(metrics)
-    print(f"leanrt index: {W}")
     return metrics

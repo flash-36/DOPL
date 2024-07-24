@@ -3,12 +3,13 @@ defaults:
   - _self_
 
 
-num_seeds : 2
+num_seeds : 1
 reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
 K : 500
 H : 100
 epsilon: 0.1
-algos : ["mle_qwic", "random", "oracle"]
+eps: 1e-5
+algos : ["direct_wibql", "random", "oracle"]
 
 plotting:
   window_size: 10 
