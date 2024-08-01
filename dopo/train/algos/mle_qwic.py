@@ -68,7 +68,7 @@ def train(env, cfg):
         for s, a, s_dash in zip(traj_states, traj_actions, traj_next_states):
             for arm in range(num_arms):
                 Q[arm, lambda_candidates.index(W[arm, s[arm]]), s[arm], a[arm]] = (
-                    1 - a_seq(Z_sa[arm, s[arm], a[arm]])
+                    1 - a_seq(cfg["step_size_params"]["const_step"])
                 ) * Q[
                     arm, lambda_candidates.index(W[arm, s[arm]]), s[arm], a[arm]
                 ] + a_seq(
