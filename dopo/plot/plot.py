@@ -192,7 +192,7 @@ def plot_dopl_estimation_errors(cfg):
         labels,
         loc="lower center",
         ncol=len(handles),
-        bbox_to_anchor=(0.5, -0.0),
+        bbox_to_anchor=(0.5, -0.15),
     )
 
     plt.tight_layout(rect=[0, 0, 1, 1])

@@ -1,18 +1,26 @@
 defaults:
+  - override hydra/launcher: joblib
   - _self_
 
 
 num_seeds : 3
 reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
-assisted_P: False # Set this to true if you want to estimate only F and not P
-K : 30
-H : 5000
-delta_coeff : 1e-5
-conf_coeff : 1e-5
-reference_strategy: "best" # or "random" or "fixed"
-enrich_F : true # Set this to true if you want to enrich F using lemma 4 in paper
-mle_method: "second_order" # or "first_order"
-mle_cumulative: False
+K : 3000
+H : 100
+epsilon: 0.1
+step_size_params:
+  const_step : 0.1
+  C : 1
+  C_dash : 1
+  D : 10
+  D_dash : 800
+
+eps : 1e-5
+algos : [ "random", "mle_wibql" ,"mle_qwic" , "mle_lp", "dopl",  "oracle"]
+plotting:
+  window_size: 20
+  algo_colors: ["red", "purple", "orange", "blue", "green", "black"]
+
 
 
 
@@ -23,4 +31,4 @@ env_config:
   arm_constraint: 5
 
 exp:
-  name: "LMSS_env_${mle_method}"
+  name: "LMSS"

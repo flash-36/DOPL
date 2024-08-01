@@ -13,17 +13,18 @@ def func(Q, num_states):
     return 1 / (2 * num_states) * np.sum(Q)
 
 
-def a_seq(n):
+def a_seq(n, step_size_params):
     n += 1
-    C = 1
-    return C / np.ceil(n / 10)
+    C = step_size_params["C"]
+    D = step_size_params["D"]
+    return C / np.ceil(n / D)
 
 
-def b_seq(n):
+def b_seq(n, step_size_params):
     n += 1
-    C_dash = 1
-    N = 2
-    return C_dash / (1 + np.ceil(n * np.log(n) / 800)) if n % N == 0 else 0
+    C_dash = step_size_params["C_dash"]
+    D_dash = step_size_params["D_dash"]
+    return C_dash / (1 + np.ceil(n * np.log(n) / D_dash))
 
 
 @register_training_function("mle_wibql")
@@ -88,7 +89,7 @@ def train(env, cfg):
                 for s, a, s_dash in zip(traj_states, traj_actions, traj_next_states):
                     Q[arm, s[arm], a[arm], state] = Q[
                         arm, s[arm], a[arm], state
-                    ] + a_seq(Z_sa[arm, s[arm], a[arm]]) * (
+                    ] + a_seq(Z_sa[arm, s[arm], a[arm]], cfg["step_size_params"]) * (
                         (1 - a[arm]) * (R_est[arm, s[arm]] + W[arm, state])
                         + a[arm] * R_est[arm, s[arm]]
                         + np.max(Q[arm, s_dash[arm], :, state])
@@ -96,7 +97,7 @@ def train(env, cfg):
                         - Q[arm, s[arm], a[arm], state]
                     )
                 # Update W value for state
-                W[arm, state] = W[arm, state] + (b_seq(k)) * (
+                W[arm, state] = W[arm, state] + (b_seq(k,cfg["step_size_params"])) * (
                     Q[arm, state, 1, state] - Q[arm, state, 0, state]
                 )
         metrics["R_error"].append(np.linalg.norm(R_est - R_true))

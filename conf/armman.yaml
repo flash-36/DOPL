@@ -9,10 +9,16 @@ K : 20000
 H : 5
 epsilon: 0.1
 eps : 1e-5
+step_size_params:
+  const_step : 0.01
+  C : 1
+  C_dash : 1
+  D : 10
+  D_dash : 800
 algos : [ "random", "mle_wibql" ,"mle_qwic" , "mle_lp", "dopl",  "oracle"]
 plotting:
   window_size: 50
-  algo_colors: ["black", "purple", "orange", "blue", "red", "green"]
+  algo_colors: ["red", "purple", "orange", "blue", "green", "black"]
 env_config:
   arm: "armman"
   num_types: 10

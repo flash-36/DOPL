@@ -7,10 +7,8 @@ from dopo.train.algos.mle_lp import mle_bradley_terry
 from dopo.train.helpers import apply_index_policy
 
 
-def a_seq(n):
-    n += 1
-    C = 1
-    return 0.33
+def a_seq(const_size):
+    return const_size
 
 
 @register_training_function("mle_qwic")
@@ -74,7 +72,7 @@ def train(env, cfg):
                 ) * Q[
                     arm, lambda_candidates.index(W[arm, s[arm]]), s[arm], a[arm]
                 ] + a_seq(
-                    Z_sa[arm, s[arm], a[arm]]
+                    cfg["step_size_params"]["const_step"]
                 ) * (
                     R_est[arm, s[arm]]
                     - W[arm, s[arm]] * a[arm]
