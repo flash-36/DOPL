@@ -3,7 +3,7 @@ defaults:
   - _self_
   
 
-num_seeds : 3
+num_seeds : 10
 reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
 K : 20000
 H : 5
@@ -17,7 +17,7 @@ step_size_params:
   D_dash : 800
 algos : [ "random", "mle_wibql" ,"mle_qwic" , "mle_lp", "dopl",  "oracle"]
 plotting:
-  window_size: 50
+  window_size: 500
   algo_colors: ["red", "purple", "orange", "blue", "green", "black"]
 env_config:
   arm: "armman"
