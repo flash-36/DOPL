@@ -8,8 +8,8 @@ class MultiArmRestlessDuellingEnv(MultiArmRestlessEnv):
     Info dict contains the results of each duel.
     """
 
-    def __init__(self, arm_constraint, P_list, R_list, initial_dist=None):
-        super().__init__(arm_constraint, P_list, R_list, initial_dist)
+    def __init__(self, arm_constraint, P_list, R_list, noise_std=0.0,initial_dist=None):
+        super().__init__(arm_constraint, P_list, R_list, noise_std,initial_dist)
         self.P_list = P_list
         self.R_list = R_list
         # Define the data type for storing duel results

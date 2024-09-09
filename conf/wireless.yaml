@@ -23,6 +23,7 @@ exp:
 
 
 env_config:
+  noise_std: 0.0
   arm: "wireless"
   num_types: 1
   num_arms_per_type: 6

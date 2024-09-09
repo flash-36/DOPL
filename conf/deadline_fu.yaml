@@ -5,20 +5,21 @@ defaults:
 
 num_seeds : 1
 reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
-K : 500
+K : 1000
 H : 100
 epsilon: 0.1
 eps: 1e-5
-algos : ["direct_wibql", "random", "oracle"]
+algos : ["dopl", "direct_wibql", "random", "oracle"]
 
 plotting:
   window_size: 10 
-  algo_colors: ["blue", "red", "green"]
+  algo_colors: ["green", "blue" , "red", "black"]
 
 env_config:
+  noise_std: 0.0
   arm: "deadline"
   num_types: 1
   num_arms_per_type: 10
-  arm_constraint: 8
+  arm_constraint: 3
 exp:
-  name: cpap_env
+  name: deadline_env

@@ -19,6 +19,7 @@ mle_cumulative: False
 
 
 env_config:
+  noise_std: 0.0
   arm: "random"
   num_types: 5
   num_arms_per_type: 25

@@ -3,10 +3,12 @@ from dopo.utils import wandb_log_latest
 from dopo.registry import register_training_function
 from dopo.train.helpers import apply_index_policy
 import numpy as np
+import time
 
 
 @register_training_function("random")
 def train(env, cfg):
+    start_time = time.time()
 
     K = cfg["K"]
 
@@ -16,6 +18,7 @@ def train(env, cfg):
     metrics = {
         "reward": [],
     }
+
 
     for k in tqdm(range(K)):
         # Start rollout using  random index policy
@@ -29,4 +32,8 @@ def train(env, cfg):
             s_list = s_dash_list
         metrics["reward"].append(reward_episode)
         wandb_log_latest(metrics)
+
+    end_time = time.time()
+    metrics["run_time"] = end_time - start_time
+
     return metrics

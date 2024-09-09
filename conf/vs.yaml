@@ -17,6 +17,7 @@ mle_method: "first_order" # or "second_order"
 mle_cumulative: False
 
 env_config:
+  noise_std: 0.0
   arm: "vs"
   num_types: 1
   num_arms_per_type: 10

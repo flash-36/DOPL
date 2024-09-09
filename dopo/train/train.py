@@ -31,6 +31,8 @@ def train_algos(env, cfg, seed):
             reinit=False,
         )
         log.info(f"Training {algo_name}")
-        results_dict[algo_name] = TRAINING_FUNCTIONS[algo_name](env, cfg)
+        results = TRAINING_FUNCTIONS[algo_name](env, cfg)
+        results_dict[algo_name] = results
+        log.info(f"Run time for {algo_name}: {results['run_time']:.2f} seconds")
         wandb.finish()
     return results_dict

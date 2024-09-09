@@ -14,12 +14,12 @@ plt.rcParams.update({"legend.fontsize": 38})
 plt.rcParams.update({"figure.titlesize": 52})
 
 
-def plot_training_performance(cfg):
+def plot_training_performance(cfg, output_dir=None):
     window_size = cfg["plotting"]["window_size"]
     colors = cfg["plotting"]["algo_colors"]
     algos = cfg["algos"]
     color_map = {algo: color for algo, color in zip(algos, colors)}
-    results_dicts = load_results()
+    results_dicts = load_results(output_dir)
     for results_dict in results_dicts:
         for algo_name, results in results_dict.items():
             if algo_name != "oracle":

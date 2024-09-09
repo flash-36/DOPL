@@ -15,11 +15,11 @@ def main():
     P_arm2, R_arm2 = process_b()
     verify_transitions(P_arm2, "Arm 2")
     save_matrices(P_arm2, R_arm2, "arm_type_2")
-    T=[None]*2
+    T = [None] * 2
     # print(P_arm1.shape)
-    T[0] = P_arm1.transpose(0,2,1)
-    T[1] = P_arm2.transpose(0,2,1)
-    print("The matrix you need for LPQL is",np.array(T))
+    T[0] = P_arm1.transpose(0, 2, 1)
+    T[1] = P_arm2.transpose(0, 2, 1)
+    print("The matrix you need for LPQL is", np.array(T))
 
 
 def process_a():
@@ -58,7 +58,7 @@ def process_b():
     P[:, :, 1] = [
         [0.01, 0.99],
         [0.01, 0.99],
-    ]  # Action 0
+    ]  # Action 1
 
     # Reward matrix for arm 1
     R = np.zeros((n_states, n_actions))

@@ -1,3 +1,4 @@
+import time
 from tqdm import tqdm
 import numpy as np
 from dopo.utils import wandb_log_latest, normalize_matrix
@@ -14,6 +15,7 @@ def a_seq(n):
 
 @register_training_function("mle_wiql")
 def train(env, cfg):
+    start_time = time.time()
     K = cfg["K"]
     R_true = np.array(env.R_list)[:, :, 0]
 
@@ -32,7 +34,12 @@ def train(env, cfg):
     W = np.random.rand(num_arms, num_states)
     Z_sa = np.zeros((num_arms, num_states, num_actions))
 
-    metrics = {"reward": [], "index_error": [], "R_error": []}
+    metrics = {
+        "reward": [],
+        "index_error": [],
+        "R_error": [],
+        "run_time": 0,
+    }
     global_step = 0
     for k in tqdm(range(K)):
         # Start rollout using Q values as policy
@@ -83,4 +90,6 @@ def train(env, cfg):
         metrics["R_error"].append(np.linalg.norm(R_est - R_true))
         metrics["index_error"].append(np.linalg.norm(W - env.opt_index))
         wandb_log_latest(metrics)
+    end_time = time.time()
+    metrics["run_time"] = end_time - start_time
     return metrics

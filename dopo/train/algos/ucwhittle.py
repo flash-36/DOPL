@@ -4,7 +4,7 @@ from dopo.registry import register_training_function
 from dopo.train.helpers import apply_index_policy
 import time 
 
-@register_training_function("oracle")
+@register_training_function("ucwhittle")
 def train(env, cfg):
     start_time = time.time()
     K = cfg["K"]

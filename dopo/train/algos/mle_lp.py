@@ -10,6 +10,7 @@ from dopo.train.helpers import apply_index_policy, compute_F_true
 
 @register_training_function("mle_lp")
 def train(env, cfg):
+    start_time = time.time()
     K = cfg["K"]
     eps = cfg["eps"]
 
@@ -32,6 +33,7 @@ def train(env, cfg):
         "index_error": [],
         "P_error": [],
         "R_error": [],
+        "run_time": 0,
     }
 
     W_sas = None
@@ -90,6 +92,8 @@ def train(env, cfg):
 
         wandb_log_latest(metrics)
 
+    end_time = time.time()
+    metrics["run_time"] = end_time - start_time
     return metrics
 
 

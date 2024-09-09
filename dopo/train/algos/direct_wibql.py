@@ -9,7 +9,7 @@ from dopo.train.helpers import (
     enrich_F,
     pick_best_ref,
 )
-
+import time
 
 def func(Q, num_states):
     """input : Q dimensionality [ states, actions]
@@ -33,6 +33,7 @@ def b_seq(n):
 
 @register_training_function("direct_wibql")
 def train(env, cfg):
+    start_time = time.time()
     K = cfg["K"]
     epsilon = cfg["epsilon"]
     eps = cfg["eps"]
@@ -66,7 +67,13 @@ def train(env, cfg):
             conf[arm, state, arm, state] = 0.0
             F_tilde[arm, state, arm, state] = 0.5
 
-    metrics = {"reward": [], "F_error": [], "R_error": [], "index_error": []}
+    metrics = {
+        "reward": [],
+        "F_error": [],
+        "R_error": [],
+        "index_error": [],
+        "run_time": 0,
+    }
 
     for k in tqdm(range(K)):
         # Start rollout using Q values as policy
@@ -168,5 +175,7 @@ def train(env, cfg):
         metrics["R_error"].append(np.linalg.norm(R_est - R_true))
         metrics["F_error"].append(np.linalg.norm(F_tilde - F_true))
         metrics["index_error"].append(np.linalg.norm(W - F_true))
+        end_time = time.time()
+        metrics["run_time"] = end_time - start_time
         wandb_log_latest(metrics)
     return metrics

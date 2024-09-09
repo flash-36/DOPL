@@ -403,3 +403,6 @@ multirun/
 
 # Weights & Biases
 wandb/
+
+# Ujwal's personal ignore
+*_temp.py

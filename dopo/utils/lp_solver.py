@@ -293,7 +293,9 @@ def compute_ELP_pyomo(delta, P_hat, budget, n_state, n_action, Reward, n_arms):
     )
 
     # Solve the model using Gurobi
-    solver = SolverFactory("gurobi")
+    # solver = SolverFactory("gurobi")
+    # Solve model using CBC
+    solver = SolverFactory("cbc")
     # solver.options["LogToConsole"] = True
     result = solver.solve(model, tee=True)
 
@@ -363,7 +365,9 @@ def compute_optimal_pyomo(Reward, budget, P, n_arms, n_state, n_action):
     model.transition = Constraint(model.N, model.S, rule=transition_rule)
 
     # Solve the model using Gurobi
-    solver = SolverFactory("gurobi")
+    # solver = SolverFactory("gurobi")
+    # Solve model using CBC
+    solver = SolverFactory("cbc")
     result = solver.solve(model, tee=True)
 
     # Check the solution status and extract the solution

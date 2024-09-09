@@ -13,7 +13,9 @@ class MultiArmRestlessEnv(gym.Env):
     Info dict contains the rewards obtained from each arm.
     """
 
-    def __init__(self, arm_constraint, P_list, R_list, initial_dist=None):
+    def __init__(
+        self, arm_constraint, P_list, R_list, noise_std=0.0, initial_dist=None
+    ):
         super(MultiArmRestlessEnv, self).__init__()
         assert len(P_list) == len(
             R_list
@@ -23,7 +25,10 @@ class MultiArmRestlessEnv(gym.Env):
             for P, R in zip(P_list, R_list)
         ), "Number of states in the Ps and Rs must match"
         self.arm_constraint = arm_constraint
-        self.arms = [RestlessArmEnv(P, R, initial_dist) for P, R in zip(P_list, R_list)]
+        self.arms = [
+            RestlessArmEnv(P, R, noise_std, initial_dist)
+            for P, R in zip(P_list, R_list)
+        ]
         self.action_space = spaces.MultiDiscrete([R.shape[1] for R in R_list])
         self.observation_space = spaces.MultiDiscrete([R.shape[0] for R in R_list])
         self.action_space_combinatorial = spaces.Discrete(
@@ -33,6 +38,7 @@ class MultiArmRestlessEnv(gym.Env):
             list(itertools.combinations(range(len(self.arms)), self.arm_constraint))
         )
         self.map_combinatorial_to_binary = self.generate_binary_vectors()
+        self.init_exploration_phase = False
 
     def generate_binary_vectors(self):
         # Initialize an array to hold the binary vectors
@@ -47,7 +53,10 @@ class MultiArmRestlessEnv(gym.Env):
         return binary_vectors
 
     def step(self, action):
-        assert sum(action) <= self.arm_constraint, "Action constraint on arms pulled"
+        if not self.init_exploration_phase:
+            assert (
+                sum(action) <= self.arm_constraint
+            ), "Action constraint on arms pulled"
         assert self.action_space.contains(action)
         rewards = []
         states = []
@@ -61,6 +70,10 @@ class MultiArmRestlessEnv(gym.Env):
 
     def reset(self):
         return [arm.reset() for arm in self.arms]
+    
+    def set_state(self, states):
+        for i, arm in enumerate(self.arms):
+            arm.set_state(states[i])
 
     def render(self, mode="human"):
         for i, arm in enumerate(self.arms):

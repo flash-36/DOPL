@@ -3,9 +3,9 @@ defaults:
   - _self_
 
 
-num_seeds : 10
+num_seeds : 1
 reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
-K : 3000
+K : 20
 H : 100
 epsilon: 0.1
 step_size_params:
@@ -14,22 +14,18 @@ step_size_params:
   C_dash : 1
   D : 10
   D_dash : 800
+history_size : 100000
 
 eps : 1e-5
-algos : [ "random", "mle_wibql" ,"mle_qwic" , "mle_lp", "dopl",  "oracle"]
+algos : ["sub_sample", "wibql","random",  "dopl",  "oracle"]
 plotting:
   window_size: 20
-  algo_colors: ["red", "purple", "orange", "blue", "green", "black"]
-
-
-
-
+  algo_colors: ["purple","blue","red", "green", "black"]
 env_config:
-  noise_std: 0.0
-  arm: "LMSS"
-  num_types: 4
-  num_arms_per_type: 5
-  arm_constraint: 5
-
+  noise_std: 0.35
+  arm: "cpap"
+  num_types: 2
+  num_arms_per_type: 3
+  arm_constraint: 2
 exp:
-  name: "LMSS"
+  name: cpap_subsample

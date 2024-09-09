@@ -50,7 +50,9 @@ def load_environment_configuration(cfg):
 
 def initialize_environment(cfg, P_list, R_list, arm_constraint):
     """Initialize the Pref-RMAB environment."""
-    env = MultiArmRestlessDuellingEnv(arm_constraint, P_list, R_list)
+    env = MultiArmRestlessDuellingEnv(
+        arm_constraint, P_list, R_list, noise_std=cfg.env_config.noise_std
+    )
     env.H = cfg.H
     return env
 
@@ -84,8 +86,11 @@ def wandb_log_latest(metrics):
     """Log metrics to wandb."""
     log_dict = {}
     for key, value in metrics.items():
+        if key == "run_time":
+            continue
         log_dict[key] = value[-1]
     wandb.log(log_dict)
+
 
 def normalize_matrix(matrix):
     """Normalize matrix to have entries between zero and one."""

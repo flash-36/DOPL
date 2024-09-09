@@ -11,10 +11,13 @@ from dopo.utils import (
 )
 from dopo.train.helpers import apply_index_policy, compute_F_true
 from dopo.registry import register_training_function
+import time
+
 
 
 @register_training_function("dopl")
 def train(env, cfg):
+    start_time = time.time()
     K = cfg["K"]
     eps = cfg["eps"]
 
@@ -53,6 +56,7 @@ def train(env, cfg):
         "F_error": [],
         "P_error": [],
         "R_error": [],
+        "run_time": 0,
     }
 
     W_sas = None
@@ -163,4 +167,6 @@ def train(env, cfg):
 
         wandb_log_latest(metrics)
 
+    end_time = time.time()
+    metrics["run_time"] = end_time - start_time
     return metrics

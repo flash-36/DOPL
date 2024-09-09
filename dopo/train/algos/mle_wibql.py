@@ -4,6 +4,7 @@ from dopo.utils import wandb_log_latest, normalize_matrix
 from dopo.registry import register_training_function
 from dopo.train.algos.mle_lp import mle_bradley_terry
 from dopo.train.helpers import apply_index_policy
+import time
 
 
 def func(Q, num_states):
@@ -29,6 +30,7 @@ def b_seq(n, step_size_params):
 
 @register_training_function("mle_wibql")
 def train(env, cfg):
+    start_time = time.time()
     K = cfg["K"]
     epsilon = cfg["epsilon"]
     R_true = np.array(env.R_list)[:, :, 0]
@@ -47,7 +49,12 @@ def train(env, cfg):
     W = np.random.rand(num_arms, num_states)
     Z_sa = np.zeros((num_arms, num_states, num_actions))
 
-    metrics = {"reward": [], "index_error": [], "R_error": []}
+    metrics = {
+        "reward": [],
+        "index_error": [],
+        "R_error": [],
+        "run_time": 0,
+    }
 
     for k in tqdm(range(K)):
         # Start rollout using Q values as policy
@@ -103,4 +110,6 @@ def train(env, cfg):
         metrics["R_error"].append(np.linalg.norm(R_est - R_true))
         metrics["index_error"].append(np.linalg.norm(W - env.opt_index))
         wandb_log_latest(metrics)
+    end_time = time.time()
+    metrics["run_time"] = end_time - start_time
     return metrics

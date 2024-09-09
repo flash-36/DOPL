@@ -5,10 +5,11 @@ from dopo.registry import register_training_function
 import torch
 from dopo.train.algos.mle_lp import mle_bradley_terry
 from dopo.train.helpers import apply_index_policy, compute_F_true, pick_best_ref, enrich_F
-
+import time
 
 @register_training_function("direct_qwic")
 def train(env, cfg):
+    start_time = time.time()
     K = cfg["K"]
     eps = cfg["eps"]
     R_true = np.array(env.R_list)[:, :, 0]
@@ -43,7 +44,13 @@ def train(env, cfg):
             conf[arm, state, arm, state] = 0.0
             F_tilde[arm, state, arm, state] = 0.5
 
-    metrics = {"reward": [], "index_error": [], "R_error": [], "F_error": []}
+    metrics = {
+        "reward": [],
+        "index_error": [],
+        "R_error": [],
+        "F_error": [],
+        "run_time": 0,
+    }
     global_step = 0
     for k in tqdm(range(K)):
         # Start rollout using Q values as policy
@@ -159,4 +166,6 @@ def train(env, cfg):
         metrics["index_error"].append(np.linalg.norm(W - env.opt_index))
         metrics["F_error"].append(np.linalg.norm(F_tilde - F_true))
         wandb_log_latest(metrics)
+    end_time = time.time()
+    metrics["run_time"] = end_time - start_time
     return metrics

@@ -8,6 +8,7 @@ from dopo.registry import register_training_function
 from dopo.utils.neural_network import PPOAgent
 import torch
 from dopo.train.algos.mle_lp import mle_bradley_terry
+import time
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -15,6 +16,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 @register_training_function("mle_ppo")
 def train(env, cfg):
+    start_time = time.time()
     K = cfg["K"]
     clip_coeff = cfg["clip_coeff"]
     lr = cfg["lr"]
@@ -37,7 +39,7 @@ def train(env, cfg):
     rewards = torch.zeros((env.H)).to(device)
     values = torch.zeros((env.H)).to(device)
 
-    metrics = {"reward": [], "R_error": [], "loss": []}
+    metrics = {"reward": [], "R_error": [], "loss": [], "run_time": 0}
 
     num_arms = len(env.P_list)
     num_states = env.P_list[0].shape[0]
@@ -88,6 +90,8 @@ def train(env, cfg):
         metrics["reward"].append(reward_episode)
         metrics["loss"].append(loss)
         wandb_log_latest(metrics)
+    end_time = time.time()
+    metrics["run_time"] = end_time - start_time
     return metrics
 
 

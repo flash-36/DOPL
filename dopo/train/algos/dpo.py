@@ -9,12 +9,14 @@ from dopo.utils import (
 from dopo.train.helpers import apply_nn_policy
 from dopo.registry import register_training_function
 import logging
+import time
 
 log = logging.getLogger(__name__)
 
 
 @register_training_function("dpo")
 def train(env, cfg):
+    start_time = time.time()
     K = cfg["K"]
     ref_update_freq = cfg["ref_update_freq"]
     beta_final = cfg["beta_final"]
@@ -23,6 +25,7 @@ def train(env, cfg):
     metrics = {
         "reward": [],
         "dpo_loss": [],
+        "run_time": 0,
     }
     optimizer = torch.optim.RMSprop(policy_net.parameters(), lr=cfg["lr"])
     beta_scheduler = ExponentialLR(beta_final, cfg["beta_decay"])
@@ -65,4 +68,6 @@ def train(env, cfg):
 
         wandb_log_latest(metrics)
 
+    end_time = time.time()
+    metrics["run_time"] = end_time - start_time
     return metrics

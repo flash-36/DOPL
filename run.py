@@ -17,7 +17,7 @@ logging.getLogger("pyomo").setLevel(logging.ERROR)
 warnings.filterwarnings("ignore")
 
 
-@hydra.main(config_path="conf", config_name="cpap_dpo", version_base=None)
+@hydra.main(config_path="conf", config_name="sub_sample_temp", version_base=None)
 def main(cfg: DictConfig):
     # instantiate env
     P_list, R_list, arm_constraint = load_environment_configuration(cfg)
