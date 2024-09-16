@@ -9,5 +9,6 @@ from .mle_wiql import train as mle_wiql_train
 from .mle_qwic import train as mle_qwic_train
 from .direct_wibql import train as direct_wibql_train
 from .direct_qwic import train as direct_qwic_train
-from .subsampling import train as sub_sample_train
+from .subsampling_finegrain import train as sub_sample_fg_train
+from .wibql_finegrain import train as wibql_fg_train
 from .wibql import train as wibql_train
