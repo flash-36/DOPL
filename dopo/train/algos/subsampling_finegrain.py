@@ -219,9 +219,9 @@ def train(env, cfg):
         for t in range(env.H):
             # Global estimates
             global_reward_est = reward_averages
-            P_hat[arm_id, state, s_dash, action] = Z_sas[
-                arm_id, state, s_dash, action
-            ] / np.maximum(1, Z_sa[arm_id, state, action])
+            P_hat = Z_sas / np.maximum(
+                1, np.repeat(np.expand_dims(Z_sa, axis=2), repeats=num_states, axis=2)
+            )
             V = ValueIterations(V, P_hat, global_reward_est, W)
             W = ComputeLambdas(V, P_hat, global_reward_est)
 
@@ -314,7 +314,7 @@ def train(env, cfg):
             s_list = s_dash_list
         if np.isinf(W).any() or np.isnan(W).any():
             raise ValueError(
-                "W contains infinity values. This may indicate numerical instability in the algorithm."
+                "W contains infinity or nan values. This may indicate numerical instability in the algorithm."
             )
         metrics["P_error"].append(np.linalg.norm(P_hat - P_true))
         metrics["index_error"].append(np.linalg.norm(W - env.opt_index))

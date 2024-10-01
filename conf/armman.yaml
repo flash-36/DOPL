@@ -22,7 +22,6 @@ plotting:
 env_config:
   noise_std: 0.0
   arm: "armman"
-  noise_std: 0.1
   num_types: 10
   num_arms_per_type: 2
   arm_constraint: 10

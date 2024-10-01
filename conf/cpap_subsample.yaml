@@ -14,10 +14,10 @@ step_size_params:
   C_dash : 1
   D : 10
   D_dash : 800
-history_size : 1000
+history_size : 100000
 
 eps : 1e-5
-algos : ["sub_sample_fg", "wibql","wibql_fg","random",    "oracle"]
+algos : ["sub_sample_fg", "wibql","wibql_fg","random", "oracle"]
 plotting:
   window_size: 20
   algo_colors: ["green","blue","pink","red",  "black"]

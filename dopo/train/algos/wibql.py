@@ -80,7 +80,7 @@ def train(env, cfg):
             s_list = s_dash_list
         # Check for infinities in W
         if np.isinf(W).any() or np.isnan(W).any():
-            raise ValueError("W contains infinity values. This may indicate numerical instability in the algorithm.")
+            raise ValueError("W contains infinity or nan values. This may indicate numerical instability in the algorithm.")
 
         metrics["reward"].append(reward_episode)
         

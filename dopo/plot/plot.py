@@ -52,7 +52,7 @@ def plot_training_performance(cfg, output_dir=None):
         axes[0].plot(
             x_values,
             mean_curve,
-            label=f"{algo_name}",
+            label=f"{algo_name}".upper(),
             color=color_map[algo_name],
         )
         axes[0].fill_between(
@@ -91,7 +91,7 @@ def plot_training_performance(cfg, output_dir=None):
         axes[1].plot(
             x_values,
             mean_curve,
-            label=f"{algo_name}",
+            label=f"{algo_name}".upper(),
             color=color_map[algo_name],
         )
         axes[1].fill_between(

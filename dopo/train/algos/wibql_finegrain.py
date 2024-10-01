@@ -87,13 +87,13 @@ def train(env, cfg):
                         - Q[arm_id, s, a, state]
                     )
                     # Update W value for state
-                    W[arm_id, state] = W[arm_id, state] + (b_seq(k*env.H + t,cfg["step_size_params"])) * (
+                    W[arm_id, state] = W[arm_id, state] + (b_seq(k,cfg["step_size_params"])) * (
                         Q[arm_id, state, 1, state] - Q[arm_id, state, 0, state]
                     )
             s_list = s_dash_list
         # Check for infinities in W
         if np.isinf(W).any() or np.isnan(W).any():
-            raise ValueError("W contains infinity values. This may indicate numerical instability in the algorithm.")
+            raise ValueError("W contains infinity or nan values. This may indicate numerical instability in the algorithm.")
 
         metrics["reward"].append(reward_episode)
         
