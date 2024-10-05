@@ -56,6 +56,7 @@ def train(env, cfg):
         "run_time": 0,
     }
 
+    # battle_data = []
     for k in tqdm(range(K)):
         # Start rollout using Q values as policy
         battle_data = []

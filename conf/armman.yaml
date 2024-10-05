@@ -3,7 +3,7 @@ defaults:
   - _self_
   
 
-num_seeds : 10
+num_seeds : 3
 reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
 K : 20000
 H : 5
@@ -15,10 +15,12 @@ step_size_params:
   C_dash : 1
   D : 10
   D_dash : 800
-algos : [ "random", "mle_wibql" ,"mle_qwic" , "mle_lp", "dopl",  "oracle"]
+# algos : [ "random", "mle_wibql" ,"mle_qwic" , "mle_lp", "dopl",  "oracle", "whittle_oracle"]
+algos : [ "random" ,  "dopl",  "oracle", "whittle_oracle"]
 plotting:
   window_size: 100
-  algo_colors: ["red", "purple", "orange", "blue", "green", "black"]
+  # algo_colors: ["red", "purple", "orange", "blue", "green", "black", "pink"]
+  algo_colors: ["red",  "green", "black", "pink"]
 env_config:
   noise_std: 0.0
   arm: "armman"

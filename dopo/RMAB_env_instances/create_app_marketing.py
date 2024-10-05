@@ -1,4 +1,4 @@
-# cpap environment
+# app marketing environment
 import numpy as np
 
 

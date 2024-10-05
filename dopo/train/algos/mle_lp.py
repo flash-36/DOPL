@@ -37,6 +37,7 @@ def train(env, cfg):
     }
 
     W_sas = None
+    # battle_data = []
     for k in tqdm(range(K)):
 
         # LP solve using R_est to get index policy

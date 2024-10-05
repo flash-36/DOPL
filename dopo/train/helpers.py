@@ -1,6 +1,7 @@
 import numpy as np
 from dopo.utils import compute_optimal, compute_optimal_pyomo
 import torch
+import markovianbandit as gast
 
 
 def apply_index_policy(state_list, index_matrix, arm_constraint):
@@ -33,6 +34,20 @@ def apply_nn_policy(state_list, policy_net, arm_constraint):
     return action, action_probs_tensor
 
 
+def compute_whittle_indices(env):
+    num_arms = len(env.P_list)
+    whittle_indices = []
+    for arm in range(num_arms):
+        P0 = env.P_list[arm][:, :, 0]
+        P1 = env.P_list[arm][:, :, 1]
+        R0 = env.R_list[arm][:, 0]
+        R1 = env.R_list[arm][:, 1]
+        model = gast.restless_bandit_from_P0P1_R0R1(P0, P1, R0, R1)
+        assert model.is_indexable(), "Environment is not whittle indexable"
+        whittle_indices.append(model.whittle_indices())
+    env.whittle_indices = np.array(whittle_indices, dtype=float)
+
+
 def get_opt_performance(env):
     """Compute oracle optimal cost and index for the given environment."""
     num_arms = len(env.P_list)
@@ -57,6 +72,7 @@ def get_opt_performance(env):
     env.opt_index_pre_nan = index_matrix_true
     # env.opt_occupancy = opt_occupancy
     env.opt_cost = optimal_cost * env.H
+    compute_whittle_indices(env)
 
 
 def compute_F_true(env):
@@ -115,7 +131,7 @@ def best_i(F_hat, reference, conf, arm, state):
 
 
 def enrich_F(F_tilde, F_hat, reference, conf):
-    """Use lemma 4 to enrich F_tilde and F_hat: j_1 is reference, j_2 is the (arm,state) to enrich, i is the helper arm,state pair."""
+    """Use lemma 4 in DOPL paper to enrich F_tilde and F_hat: j_1 is reference, j_2 is the (arm,state) to enrich, i is the helper arm,state pair."""
     ref_arm, ref_state = reference
     num_arms = F_hat.shape[0]
     num_states = F_hat.shape[1]
