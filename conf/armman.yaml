@@ -15,12 +15,12 @@ step_size_params:
   C_dash : 1
   D : 10
   D_dash : 800
-# algos : [ "random", "mle_wibql" ,"mle_qwic" , "mle_lp", "dopl",  "oracle", "whittle_oracle"]
-algos : [ "random" ,  "dopl",  "oracle", "whittle_oracle"]
+algos : [ "random", "mle_wibql" ,"direct_wibql" , "mle_lp", "dopl",  "oracle", "whittle_oracle"]
+# algos : [ "random" ,  "dopl",  "oracle", "whittle_oracle"]
 plotting:
   window_size: 100
-  # algo_colors: ["red", "purple", "orange", "blue", "green", "black", "pink"]
-  algo_colors: ["red",  "green", "black", "pink"]
+  algo_colors: ["red", "purple", "green", "orange", "blue", "black", "pink"]
+  # algo_colors: ["red",  "green", "black", "pink"]
 env_config:
   noise_std: 0.0
   arm: "armman"

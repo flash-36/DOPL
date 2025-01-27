@@ -8,16 +8,22 @@ reward_normalized: True # Set this to true if your env R is normalized between 0
 K : 1000
 H : 100
 epsilon: 0.1
+step_size_params:
+  const_step : 0.1
+  C : 1
+  C_dash : 1
+  D : 10
+  D_dash : 800
+history_size : 100000
 eps: 1e-5
-algos : ["dopl", "direct_wibql", "random", "oracle"]
-
+algos : ["sub_sample_fg", "wibql","wibql_fg","random", "oracle", "whittle_oracle"]
 plotting:
-  window_size: 10 
-  algo_colors: ["green", "blue" , "red", "black"]
+  window_size: 20
+  algo_colors: ["green","blue","pink","red",  "black", "purple"]
 
 env_config:
   noise_std: 0.0
-  arm: "deadline"
+  arm: "deadline_6x6"
   num_types: 1
   num_arms_per_type: 10
   arm_constraint: 3

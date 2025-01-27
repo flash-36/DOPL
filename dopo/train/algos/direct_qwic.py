@@ -6,6 +6,7 @@ import torch
 from dopo.train.algos.mle_lp import mle_bradley_terry
 from dopo.train.helpers import apply_index_policy, compute_F_true, pick_best_ref, enrich_F
 import time
+from scipy.stats import kendalltau
 
 @register_training_function("direct_qwic")
 def train(env, cfg):
@@ -163,7 +164,7 @@ def train(env, cfg):
                     ]
 
         metrics["R_error"].append(np.linalg.norm(R_est - R_true))
-        metrics["index_error"].append(np.linalg.norm(W - env.opt_index))
+        metrics["index_error"].append(kendalltau(W.ravel(), env.whittle_indices.ravel())[0]) # Kendall tau coeff : -1 means opposite, 0 means no correlation, 1 means same order
         metrics["F_error"].append(np.linalg.norm(F_tilde - F_true))
         wandb_log_latest(metrics)
     end_time = time.time()

@@ -3,9 +3,9 @@ defaults:
   - _self_
 
 
-num_seeds : 3
+num_seeds : 1
 reward_normalized: True # Set this to true if your env R is normalized between 0 and 1
-K : 1600
+K : 1000
 H : 100
 epsilon: 0.1
 step_size_params:
@@ -14,17 +14,18 @@ step_size_params:
   C_dash : 1
   D : 10
   D_dash : 800
-
-eps : 1e-5
-algos : [ "random", "mle_lp", "dopl","mle_wibql" ,"direct_wibql" , "oracle", "whittle_oracle"]
+history_size : 100000
+eps: 1e-5
+algos : ["gast", "sub_sample_gast", "wibql","wibql_fg","random", "whittle_oracle"]
 plotting:
   window_size: 20
-  algo_colors: ["red","orange", "blue", "purple", "green",  "black", "pink"]
+  algo_colors: ["yellow","green","blue","pink","red",  "black"]
+
 env_config:
   noise_std: 0.0
-  arm: "cpap"
-  num_types: 2
+  arm: "deadline_6x6"
+  num_types: 1
   num_arms_per_type: 10
-  arm_constraint: 8
+  arm_constraint: 3
 exp:
-  name: cpap
+  name: deadline_env

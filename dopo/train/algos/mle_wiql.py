@@ -5,7 +5,7 @@ from dopo.utils import wandb_log_latest, normalize_matrix
 from dopo.registry import register_training_function
 from dopo.train.algos.mle_lp import mle_bradley_terry
 from dopo.train.helpers import apply_index_policy
-
+from scipy.stats import kendalltau
 
 def a_seq(n):
     n += 1
@@ -88,7 +88,7 @@ def train(env, cfg):
                 # Update W value for state
                 W[arm, s[arm]] = Q[arm, s[arm], 1] - Q[arm, s[arm], 0]
         metrics["R_error"].append(np.linalg.norm(R_est - R_true))
-        metrics["index_error"].append(np.linalg.norm(W - env.opt_index))
+        metrics["index_error"].append(kendalltau(W.ravel(), env.whittle_indices.ravel())[0]) # Kendall tau coeff : -1 means opposite, 0 means no correlation, 1 means same order
         wandb_log_latest(metrics)
     end_time = time.time()
     metrics["run_time"] = end_time - start_time

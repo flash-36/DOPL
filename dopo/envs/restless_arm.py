@@ -41,5 +41,8 @@ class RestlessArmEnv(gym.Env):
     def set_state(self, state):
         self.current_state = state
 
+    def get_state(self):
+        return self.current_state
+
     def render(self, mode="human"):
         print(f"State: {self.current_state}")

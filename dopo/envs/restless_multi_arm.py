@@ -70,10 +70,13 @@ class MultiArmRestlessEnv(gym.Env):
 
     def reset(self):
         return [arm.reset() for arm in self.arms]
-    
+
     def set_state(self, states):
         for i, arm in enumerate(self.arms):
             arm.set_state(states[i])
+
+    def get_state(self):
+        return [arm.get_state() for arm in self.arms]
 
     def render(self, mode="human"):
         for i, arm in enumerate(self.arms):

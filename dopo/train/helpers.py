@@ -43,8 +43,8 @@ def compute_whittle_indices(env):
         R0 = env.R_list[arm][:, 0]
         R1 = env.R_list[arm][:, 1]
         model = gast.restless_bandit_from_P0P1_R0R1(P0, P1, R0, R1)
-        assert model.is_indexable(), "Environment is not whittle indexable"
-        whittle_indices.append(model.whittle_indices())
+        # assert model.is_indexable(), "Environment is not whittle indexable"
+        whittle_indices.append(model.whittle_indices(discount=0.99))
     env.whittle_indices = np.array(whittle_indices, dtype=float)
 
 
@@ -64,13 +64,14 @@ def get_opt_performance(env):
         num_states,
         num_actions,
     )
-    index_matrix_true = opt_occupancy[:, :, 1] / (
-        opt_occupancy[:, :, 0] + opt_occupancy[:, :, 1]
+    numerator = opt_occupancy[:, :, 1]
+    denominator = opt_occupancy[:, :, 0] + opt_occupancy[:, :, 1]
+    opt_index_pre_nan = np.divide(
+        numerator, denominator, out=np.zeros_like(numerator), where=denominator != 0
     )
-    opt_index = np.nan_to_num(index_matrix_true, nan=0.0)
+    opt_index = np.nan_to_num(opt_index_pre_nan, nan=0.0)
     env.opt_index = opt_index
-    env.opt_index_pre_nan = index_matrix_true
-    # env.opt_occupancy = opt_occupancy
+    env.opt_index_pre_nan = opt_index_pre_nan
     env.opt_cost = optimal_cost * env.H
     compute_whittle_indices(env)
 

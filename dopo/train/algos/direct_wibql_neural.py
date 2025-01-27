@@ -177,8 +177,8 @@ def train(env, cfg):
         metrics["R_error"].append(np.linalg.norm(R_est - R_true))
         metrics["F_error"].append(np.linalg.norm(F_tilde - F_true))
         metrics["index_error"].append(
-            -kendalltau(W.ravel(), env.whittle_indices.ravel())[0] + 1
-        )  # index_error :  0 means same order, 2 means opposite order, 1 means no correlation
+            kendalltau(W.ravel(), env.whittle_indices.ravel())[0]
+        )  # Kendall tau coeff : -1 means opposite, 0 means no correlation, 1 means same order
         end_time = time.time()
         metrics["run_time"] = end_time - start_time
         wandb_log_latest(metrics)

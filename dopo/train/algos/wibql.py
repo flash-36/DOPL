@@ -5,7 +5,7 @@ from dopo.registry import register_training_function
 from dopo.train.algos.mle_lp import mle_bradley_terry
 from dopo.train.helpers import apply_index_policy
 import time
-
+from scipy.stats import kendalltau
 
 def func(Q, num_states):
     """input : Q dimensionality [ states, actions]
@@ -101,7 +101,7 @@ def train(env, cfg):
                 W[arm, state] = W[arm, state] + (b_seq(k,cfg["step_size_params"])) * (
                     Q[arm, state, 1, state] - Q[arm, state, 0, state]
                 )
-        metrics["index_error"].append(np.linalg.norm(W - env.opt_index))
+        metrics["index_error"].append(kendalltau(W.ravel(), env.whittle_indices.ravel())[0]) # Kendall tau coeff : -1 means opposite, 0 means no correlation, 1 means same order
         wandb_log_latest(metrics)
     end_time = time.time()
     metrics["run_time"] = end_time - start_time

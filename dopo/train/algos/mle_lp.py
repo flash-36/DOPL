@@ -6,6 +6,7 @@ import numpy as np
 from dopo.utils import compute_ELP_pyomo, wandb_log_latest
 from dopo.registry import register_training_function
 from dopo.train.helpers import apply_index_policy, compute_F_true
+from scipy.stats import kendalltau
 
 
 @register_training_function("mle_lp")
@@ -52,11 +53,18 @@ def train(env, cfg):
         )
 
         W_sa = np.sum(W_sas, axis=2)
-        index_matrix_pre_nan = W_sa[:, :, 1] / (W_sa[:, :, 0] + W_sa[:, :, 1])
+        W0 = W_sa[:, :, 0]
+        W1 = W_sa[:, :, 1]
+        denom = W0 + W1
+        index_matrix_pre_nan = np.divide(
+            W1, denom, out=np.zeros_like(W1), where=denom != 0
+        )
         index_matrix = np.nan_to_num(index_matrix_pre_nan, nan=0.0)
 
         # Keep track of errors
-        metrics["index_error"].append(np.linalg.norm(index_matrix - env.opt_index))
+        metrics["index_error"].append(
+            kendalltau(index_matrix.ravel(), env.opt_index.ravel())[0]
+        )  # Kendall tau coeff : -1 means opposite, 0 means no correlation, 1 means same order
         metrics["P_error"].append(np.linalg.norm(P_hat - P_true))
         metrics["R_error"].append(np.linalg.norm(R_est - R_true))
 
@@ -132,7 +140,7 @@ def mle_bradley_terry(comparisons, R_est):
         args=(comparisons, num_arms, num_states),
         method="L-BFGS-B",
         bounds=bounds,
-        options={"maxiter": 1000, "gtol": 1e-3},
+        options={"maxiter": 10000000, "gtol": 1e-3},
     )
 
     if result.success:

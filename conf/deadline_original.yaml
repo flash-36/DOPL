@@ -5,7 +5,7 @@ defaults:
 
 num_seeds : 3
 reward_normalized: False # Set this to true if your env R is normalized between 0 and 1
-K : 2000
+K : 20000
 H : 300
 epsilon: 0.1
 eps : 1e-5
@@ -15,15 +15,19 @@ step_size_params:
   C_dash : 1
   D : 10
   D_dash : 800
-algos : [ "random", "direct_wibql", "mle_wibql"  , "mle_lp", "dopl",  "oracle", "whittle_oracle"]
+algos : [ "oracle", "whittle_oracle", "random", "direct_wibql", ] #"dopl"]
 # algos : [ "random" ,  "dopl",  "oracle", "whittle_oracle"]
 plotting:
   window_size: 100
-  algo_colors: ["red", "green", "purple", "orange", "blue", "black", "pink"]
+  algo_colors: ["black", "pink" ,"red", "green",] # "blue" ]
   # algo_colors: ["red",  "green", "black", "pink"]
 env_config:
   noise_std: 0.0
-  arm: "wireless"
+  arm: "original_deadline"
   num_types: 1
-  num_arms_per_type: 6
-  arm_constraint: 3
+  num_arms_per_type: 4
+  arm_constraint: 2
+exp:
+  name: original_deadline
+
+

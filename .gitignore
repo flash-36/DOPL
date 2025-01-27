@@ -405,5 +405,6 @@ multirun/
 wandb/
 
 # Ujwal's personal ignore
+*.png
 *_temp.py
 prototyping_stage/

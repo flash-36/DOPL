@@ -17,10 +17,10 @@ step_size_params:
 history_size : 100000
 
 eps : 1e-5
-algos : ["sub_sample_fg", "wibql","wibql_fg","random", "oracle"]
+algos : ["gast", "sub_sample_gast", "wibql","wibql_fg","random", "whittle_oracle"]
 plotting:
   window_size: 20
-  algo_colors: ["green","blue","pink","red",  "black"]
+  algo_colors: ["yellow","green","blue","pink","red",  "black"]
 env_config:
   noise_std: 0.35
   arm: "cpap"

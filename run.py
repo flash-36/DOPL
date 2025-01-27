@@ -9,6 +9,7 @@ from dopo.train import get_opt_performance, train
 from dopo.plot import (
     plot_training_performance,
     plot_dopl_estimation_errors,
+    plot_direct_wibql_errors,
 )
 import warnings
 import logging
@@ -30,6 +31,7 @@ def main(cfg: DictConfig):
     # Plot results
     plot_training_performance(cfg)
     plot_dopl_estimation_errors(cfg)
+    plot_direct_wibql_errors(cfg)
 
 
 if __name__ == "__main__":

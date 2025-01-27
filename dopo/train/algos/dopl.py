@@ -12,7 +12,7 @@ from dopo.utils import (
 from dopo.train.helpers import apply_index_policy, compute_F_true
 from dopo.registry import register_training_function
 import time
-
+from scipy.stats import kendalltau
 
 
 @register_training_function("dopl")
@@ -88,7 +88,10 @@ def train(env, cfg):
         )
 
         W_sa = np.sum(W_sas, axis=2)
-        index_matrix_pre_nan = W_sa[:, :, 1] / (W_sa[:, :, 0] + W_sa[:, :, 1])
+        W0 = W_sa[:, :, 0]
+        W1 = W_sa[:,:,1]
+        denom = W0 + W1
+        index_matrix_pre_nan = np.divide(W1, denom, out=np.zeros_like(W1), where=denom!=0)
         index_matrix = np.nan_to_num(index_matrix_pre_nan, nan=0.0)
 
         # Keep track of errors
@@ -96,7 +99,7 @@ def train(env, cfg):
             F_true[:, :, ref_arm, ref_state] / (1 - F_true[:, :, ref_arm, ref_state])
         )
         metrics["R_error"].append(np.linalg.norm(Q_n_s - Q_true))
-        metrics["index_error"].append(np.linalg.norm(index_matrix - env.opt_index))
+        metrics["index_error"].append(kendalltau(index_matrix.ravel(), env.opt_index.ravel())[0]) # Kendall tau coeff : -1 means opposite, 0 means no correlation, 1 means same order
         metrics["F_error"].append(np.linalg.norm(F_hat - F_true))
         metrics["P_error"].append(np.linalg.norm(P_hat - P_true))
 
