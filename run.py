@@ -1,12 +1,12 @@
 import hydra
 from omegaconf import DictConfig
 
-from dopo.utils import (
+from dopl.utils import (
     load_environment_configuration,
     initialize_environment,
 )
-from dopo.train import get_opt_performance, train
-from dopo.plot import (
+from dopl.train import get_opt_performance, train
+from dopl.plot import (
     plot_training_performance,
     plot_dopl_estimation_errors,
     plot_direct_wibql_errors,
