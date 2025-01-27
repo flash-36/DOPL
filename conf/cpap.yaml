@@ -16,10 +16,10 @@ step_size_params:
   D_dash : 800
 
 eps : 1e-5
-algos : [ "random", "mle_lp", "dopl","mle_wibql" ,"direct_wibql" , "oracle", "whittle_oracle"]
+algos : [ "random", "mle_lp", "dopl","mle_wibql" , "oracle", "whittle_oracle"]
 plotting:
   window_size: 20
-  algo_colors: ["red","orange", "blue", "purple", "green",  "black", "pink"]
+  algo_colors: ["red","orange", "blue", "purple", "black", "pink"]
 env_config:
   noise_std: 0.0
   arm: "cpap"
