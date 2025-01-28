@@ -11,8 +11,8 @@ To run the code for a specific environment.
 For Example: If we want to run DOPL algorithm in the cpap environment:
 ```python run.py --config-name=cpap``` 
 
-For CPAP environment: ```python create_cpap.py```
+For CPAP environment: ```python create_cpap.py```.
 This creates the state dependent reward and transition probabilities for each arm.
  
 
-output will be stored in a timestamped directory in ```outputs``` folder
+Output will be stored in a timestamped directory in ```outputs``` folder
