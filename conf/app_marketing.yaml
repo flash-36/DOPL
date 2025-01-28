@@ -17,11 +17,9 @@ step_size_params:
 
 eps : 1e-5
 algos : ["random", "mle_lp", "dopl","mle_wibql" ,"mle_qwic", "oracle"]
-# algos : [ "random" ,  "dopl",  "oracle", "whittle_oracle"]
 plotting:
   window_size: 20
   algo_colors: ["red","orange", "blue", "purple","green", "black"]
-  # algo_colors: ["red", "green", "black", "pink"]
 env_config:
   noise_std: 0.0
   arm: "app_marketing"
