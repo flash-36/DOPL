@@ -1,5 +1,4 @@
-# **DOPL**  
-### *Direct Online Preference Learning*
+# **Direct Online Preference Learning**  
 
 This is the official codebase for the paper:  
 **[Direct Online Preference Learning for Restless Bandits with Preference Feedback](https://arxiv.org/abs/2410.05527)**
